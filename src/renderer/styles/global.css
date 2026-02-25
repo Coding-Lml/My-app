@@ -170,6 +170,11 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.app-shell.is-collapsed .sider {
+  box-shadow: none;
+  border-right-color: color-mix(in srgb, var(--border-subtle) 75%, transparent);
+}
+
 .sider .arco-layout-sider-children {
   display: flex;
   flex-direction: column;
@@ -229,8 +234,8 @@ body {
 }
 
 .sider.arco-layout-sider-collapsed .brand {
-  padding: 10px 0 8px;
-  height: 56px;
+  padding: 28px 0 6px;
+  height: 66px;
   justify-content: center;
 }
 
@@ -240,8 +245,8 @@ body {
 
 .sider.arco-layout-sider-collapsed .sider-collapse-btn {
   position: static;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   background: var(--surface-soft);
   border: 1px solid var(--border-subtle);
 }
@@ -253,30 +258,67 @@ body {
   border: none !important;
 }
 
+.sider-menu.arco-menu-vertical .arco-menu-inner {
+  padding: 2px 0;
+}
+
 .sider-menu .arco-menu-item {
   position: relative;
-  height: 46px;
-  line-height: 46px;
-  margin: 6px 0;
-  border-radius: var(--radius-md);
-  padding: 0 12px !important;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-float) 84%, transparent);
+  height: 52px;
+  line-height: 52px;
+  margin: 8px 0;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
   color: var(--text-secondary);
-  transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast),
-    border-color var(--motion-fast), transform var(--motion-fast);
+  transition: color var(--motion-fast), transform var(--motion-fast);
+}
+
+.sider-menu .arco-menu-item .arco-menu-item-inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  border-radius: 18px !important;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-float) 84%, transparent) !important;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.sider-menu .arco-menu-item .arco-menu-item-inner > a:only-child,
+.sider-menu .arco-menu-item .arco-menu-item-inner > a:only-child::before {
+  border-radius: inherit;
+}
+
+.sider-menu .arco-menu-item:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.sider-menu .arco-menu-item:focus-visible .arco-menu-item-inner {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-strong) 45%, transparent);
 }
 
 .sider-menu .arco-menu-item:hover {
-  background: var(--surface-soft-hover);
-  border-color: var(--border-default);
   color: var(--text-primary);
   transform: translateY(-1px);
 }
 
+.sider-menu .arco-menu-item:hover .arco-menu-item-inner {
+  background: var(--surface-soft-hover) !important;
+  border-color: var(--border-default);
+}
+
 .sider-menu .arco-menu-item.arco-menu-selected {
-  background: var(--accent-soft-strong);
   color: var(--accent-strong);
+}
+
+.sider-menu .arco-menu-item.arco-menu-selected .arco-menu-item-inner {
+  background: var(--accent-soft-strong) !important;
   border-color: color-mix(in srgb, var(--accent-strong) 44%, var(--border-default));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 30%, transparent);
 }
@@ -286,25 +328,53 @@ body {
 }
 
 .sider-menu .arco-menu-item .arco-icon {
-  font-size: 18px;
+  font-size: 20px;
   color: currentcolor;
 }
 
+.sider-menu.arco-menu-collapse {
+  width: 100% !important;
+}
+
+.sider-menu.arco-menu-collapse .arco-menu-inner {
+  padding: 4px 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .sider-menu.arco-menu-collapse .arco-menu-item {
-  padding: 0 !important;
-  width: 52px;
-  margin: 8px auto;
+  width: 36px;
+  height: 36px;
+  margin: 6px auto;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sider-menu.arco-menu-collapse .arco-menu-item .arco-menu-item-inner {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px !important;
+  font-size: 0;
 }
 
-.sider-menu.arco-menu-collapse .arco-menu-item .arco-icon {
+.sider-menu.arco-menu-collapse .arco-menu-item .arco-icon,
+.sider-menu.arco-menu-collapse .arco-menu-item .arco-menu-item-inner .arco-icon {
   margin: 0 !important;
-  font-size: 19px;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  font-size: 17px !important;
+  transform: translateX(0);
+}
+
+.sider.arco-layout-sider-collapsed .sider-menu {
+  padding: 6px 0;
 }
 
 .sider-footer {
@@ -335,7 +405,17 @@ body {
 }
 
 .sider.arco-layout-sider-collapsed .sider-footer {
-  padding: 10px 8px;
+  padding: 6px 3px;
+}
+
+.sider.arco-layout-sider-collapsed .theme-btn-icon {
+  width: 30px;
+  height: 28px;
+  margin: 0 auto;
+}
+
+.app-shell.is-collapsed .content {
+  padding-left: 6px;
 }
 
 .content-layout {

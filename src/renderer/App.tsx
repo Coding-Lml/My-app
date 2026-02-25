@@ -124,14 +124,14 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${collapsed ? 'is-collapsed' : ''}`}>
       <Layout className="layout">
         <Sider
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
           width={236}
-          collapsedWidth={84}
+          collapsedWidth={52}
           trigger={null}
           className="sider"
         >
@@ -163,7 +163,7 @@ function App() {
                 renderItemInTooltip={() => <span>{item.label}</span>}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
               </MenuItem>
             ))}
           </Menu>
