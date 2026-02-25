@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button } from '@arco-design/web-react';
-import { IconSun, IconMoon } from '@arco-design/web-react/icon';
+import { IconSun, IconMoon, IconLeft, IconRight } from '@arco-design/web-react/icon';
 import React, { Suspense } from 'react';
 import CommandPalette from './components/CommandPalette';
+import BrandMark from './components/BrandMark';
 import { MENU_ITEMS } from './config/navigation';
 import { ResolvedTheme, ThemeMode } from './types/theme';
 import './styles/global.css';
@@ -130,28 +131,39 @@ function App() {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           width={236}
-          collapsedWidth={64}
+          collapsedWidth={72}
+          trigger={null}
           className="sider"
         >
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <span className="brand-mark-dot" />
-            </span>
-            {!collapsed && (
-              <div className="brand-text-group">
-                <span className="brand-title">Academia</span>
-                <span className="brand-subtitle">Learning Console</span>
-              </div>
-            )}
+            <div className="brand-main">
+              <BrandMark className="brand-mark-svg" decorative />
+              {!collapsed && (
+                <div className="brand-text-group">
+                  <span className="brand-title">Academia</span>
+                  <span className="brand-subtitle">Learning Console</span>
+                </div>
+              )}
+            </div>
+            <Button
+              type="text"
+              size="mini"
+              className="sider-collapse-btn"
+              icon={collapsed ? <IconRight /> : <IconLeft />}
+              onClick={() => setCollapsed((prev) => !prev)}
+              aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+            />
           </div>
 
-          <Menu selectedKeys={[selectedKey]} onClickMenuItem={handleMenuClick} className="sider-menu">
+          <Menu selectedKeys={[selectedKey]} onClickMenuItem={handleMenuClick} className="sider-menu" collapse={collapsed}>
             {MENU_ITEMS.map((item) => (
-              <MenuItem key={item.path} title={item.label}>
-                <div className={`menu-item-inner ${collapsed ? 'is-collapsed' : ''}`}>
-                  {item.icon}
-                  {!collapsed && <span>{item.label}</span>}
-                </div>
+              <MenuItem
+                key={item.path}
+                title={item.label}
+                renderItemInTooltip={() => <span>{item.label}</span>}
+              >
+                {item.icon}
+                <span>{item.label}</span>
               </MenuItem>
             ))}
           </Menu>
