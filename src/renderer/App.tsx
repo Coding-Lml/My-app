@@ -131,7 +131,7 @@ function App() {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           width={236}
-          collapsedWidth={72}
+          collapsedWidth={84}
           trigger={null}
           className="sider"
         >

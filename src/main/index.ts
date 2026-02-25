@@ -15,6 +15,11 @@ let mainWindow: BrowserWindow | null = null;
 let db: Database | null = null;
 
 function createWindow() {
+  const iconPath =
+    process.platform === 'win32'
+      ? path.join(__dirname, '../../resources/icons/icon.ico')
+      : path.join(__dirname, '../../resources/icons/icon-1024.png');
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -28,6 +33,7 @@ function createWindow() {
     },
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#ffffff',
+    icon: iconPath,
   });
 
   // Load the app
