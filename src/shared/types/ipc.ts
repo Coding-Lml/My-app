@@ -37,38 +37,6 @@ export interface CheckInStats {
   thisMonthDuration: number;
 }
 
-export interface PomodoroSession {
-  id: number;
-  start_time: number;
-  end_time: number | null;
-  duration: number;
-  type: string;
-  task_id: number | null;
-  task_title: string | null;
-  completed: number;
-  created_at: number;
-}
-
-export interface PomodoroStats {
-  totalSessions: number;
-  totalDuration: number;
-  completedSessions: number;
-}
-
-export interface CodeSnippet {
-  id: number;
-  title: string;
-  content: string;
-  language: string;
-  description: string | null;
-  category: string | null;
-  is_favorite: number;
-  usage_count: number;
-  created_at: number;
-  updated_at: number;
-  is_deleted: number;
-}
-
 export interface CodeExecutionResult {
   success: boolean;
   output: string;
@@ -97,18 +65,6 @@ export interface StudyProgress {
   parent_skill_id: number | null;
   order_index: number;
   updated_at: number;
-}
-
-export interface Achievement {
-  id: number;
-  name: string;
-  description: string | null;
-  icon: string | null;
-  condition_type: string | null;
-  condition_value: number | null;
-  unlocked: number;
-  unlocked_at: number | null;
-  created_at: number;
 }
 
 export interface StudyPlan {
@@ -267,6 +223,21 @@ export interface BackupImportResult {
   error?: string;
 }
 
+export interface BackupPreviewSummary {
+  version?: string;
+  exportedAt?: string;
+  counts: BackupCountMap;
+}
+
+export interface BackupPreviewResult {
+  success: boolean;
+  message: string;
+  filePath?: string;
+  summary?: BackupPreviewSummary;
+  warnings?: string[];
+  error?: string;
+}
+
 export interface ProgressCreatePayload {
   skill_name: string;
   category?: string;
@@ -290,20 +261,6 @@ export interface ElectronAPI {
     end: (date: number, duration: number) => Promise<CheckIn>;
     stats: () => Promise<CheckInStats>;
   };
-  pomodoro: {
-    getAll: (limit?: number) => Promise<PomodoroSession[]>;
-    save: (session: Partial<PomodoroSession>) => Promise<PomodoroSession>;
-    update: (id: number, updates: Partial<PomodoroSession>) => Promise<{ success: boolean }>;
-    getStats: (date: number) => Promise<PomodoroStats>;
-    getTodayStats: () => Promise<PomodoroStats>;
-  };
-  snippets: {
-    getAll: () => Promise<CodeSnippet[]>;
-    create: (snippet: Partial<CodeSnippet>) => Promise<CodeSnippet>;
-    update: (id: number, snippet: Partial<CodeSnippet>) => Promise<{ success: boolean }>;
-    delete: (id: number) => Promise<{ success: boolean }>;
-    incrementUsage: (id: number) => Promise<{ success: boolean }>;
-  };
   code: {
     runJava: (code: string, javaPath?: string) => Promise<CodeExecutionResult>;
     runPython: (code: string, pythonPath?: string) => Promise<CodeExecutionResult>;
@@ -317,10 +274,6 @@ export interface ElectronAPI {
     updateById: (id: number, updates: Partial<StudyProgress>) => Promise<{ success: boolean }>;
     delete: (id: number) => Promise<{ success: boolean }>;
   };
-  achievements: {
-    getAll: () => Promise<Achievement[]>;
-    getUnlocked: () => Promise<Achievement[]>;
-  };
   settings: {
     get: (key: string) => Promise<string | null>;
     set: (key: string, value: string, category?: string) => Promise<{ success: boolean }>;
@@ -330,7 +283,7 @@ export interface ElectronAPI {
     getAll: () => Promise<StudyPlan[]>;
     getById: (id: number) => Promise<StudyPlan | null>;
     create: (plan: Partial<StudyPlan>) => Promise<StudyPlan>;
-    update: (id: number, updates: StudyPlanUpdatePayload) => Promise<{ success: boolean; plan?: StudyPlan }>;
+    update: (id: number, updates: StudyPlanUpdatePayload) => Promise<{ success: boolean; plan?: StudyPlan; error?: string }>;
     delete: (id: number) => Promise<{ success: boolean }>;
   };
   milestones: {
@@ -341,12 +294,10 @@ export interface ElectronAPI {
   };
   export: {
     backup: () => Promise<BackupExportResult>;
-    importBackup: () => Promise<BackupImportResult>;
+    previewBackup: () => Promise<BackupPreviewResult>;
+    importBackup: (filePath?: string) => Promise<BackupImportResult>;
     toPDF: (content: string, title: string) => Promise<SaveResult>;
     toPDFAdvanced: (content: string, title: string, options?: PdfExportOptions) => Promise<SaveResult>;
-  };
-  file: {
-    save: (content: string, defaultPath?: string, filters?: FileDialogFilter[]) => Promise<SaveResult>;
   };
   fs: {
     openFolder: () => Promise<{ success: boolean; folderPath?: string }>;
@@ -360,7 +311,7 @@ export interface ElectronAPI {
     renameFile: (oldPath: string, newPath: string) => Promise<SaveResult>;
     watchFolder: (folderPath: string, options?: FsReadFolderOptions) => Promise<SaveResult>;
     unwatchFolder: (folderPath: string) => Promise<SaveResult>;
-    onFolderChange: (callback: (event: Event, data: { eventType: string; filename: string; folderPath: string }) => void) => void;
+    onFolderChange: (callback: (event: unknown, data: { eventType: string; filename: string; folderPath: string }) => void) => void;
     removeFolderChangeListener: () => void;
     reveal: (filePath: string) => Promise<{ success: boolean }>;
     getFileStats: (filePath: string) => Promise<FileStatsResult>;

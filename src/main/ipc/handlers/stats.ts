@@ -42,41 +42,6 @@ export function registerStatsHandlers(db: Database) {
     return { success: true };
   });
 
-  // Get achievements
-  ipcMain.handle('achievements:getAll', () => {
-    const result = (db as any).db?.exec('SELECT * FROM achievements ORDER BY created_at');
-    if (!result || result.length === 0) return [];
-
-    const { columns, values } = result[0];
-    return values.map((row: any[]) => {
-      const achievement: any = {};
-      columns.forEach((col: string, i: number) => {
-        achievement[col] = row[i];
-      });
-      return achievement;
-    });
-  });
-
-  // Get user achievements (unlocked)
-  ipcMain.handle('achievements:getUnlocked', () => {
-    const result = (db as any).db?.exec(`
-      SELECT a.*, ua.unlocked_at
-      FROM achievements a
-      INNER JOIN user_achievements ua ON a.id = ua.achievement_id
-      ORDER BY ua.unlocked_at DESC
-    `);
-    if (!result || result.length === 0) return [];
-
-    const { columns, values } = result[0];
-    return values.map((row: any[]) => {
-      const achievement: any = {};
-      columns.forEach((col: string, i: number) => {
-        achievement[col] = row[i];
-      });
-      return achievement;
-    });
-  });
-
   // Get settings
   ipcMain.handle('settings:get', (_event, key: string) => {
     return db.getSetting(key);
@@ -90,19 +55,11 @@ export function registerStatsHandlers(db: Database) {
 
   // Get all settings
   ipcMain.handle('settings:getAll', () => {
-    const result = (db as any).db?.exec('SELECT * FROM settings');
-    if (!result || result.length === 0) return [];
-
-    const { columns, values } = result[0];
-    const settings: Record<string, any> = {};
-    values.forEach((row: any[]) => {
-      const setting: any = {};
-      columns.forEach((col: string, i: number) => {
-        setting[col] = row[i];
-      });
-      settings[setting.key] = setting.value;
+    const rows = db.getAllSettings();
+    const settings: Record<string, string> = {};
+    rows.forEach(row => {
+      settings[row.key] = row.value;
     });
-
     return settings;
   });
 }

@@ -1,18 +1,27 @@
 import { ipcMain, dialog, app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { allowPath, isPathAllowed } from '../../security/pathAccess';
 
 let imagesDir: string | null = null;
 
-function getImagesDir(): string {
+async function getImagesDir(): Promise<string> {
   if (!imagesDir) {
     const userDataPath = app.getPath('userData');
     imagesDir = path.join(userDataPath, 'note-images');
-    if (!fs.existsSync(imagesDir)) {
-      fs.mkdirSync(imagesDir, { recursive: true });
-    }
+    await fs.promises.mkdir(imagesDir, { recursive: true });
+    allowPath(imagesDir);
   }
   return imagesDir;
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.promises.access(targetPath, fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeImageBaseName(fileName?: string): string {
@@ -29,7 +38,7 @@ function sanitizeImageBaseName(fileName?: string): string {
     .toLowerCase();
 }
 
-function generateImageName(ext: string, dir: string, preferredName?: string): string {
+async function generateImageName(ext: string, dir: string, preferredName?: string): Promise<string> {
   const extName = ext.toLowerCase().replace(/^\./, '');
   const preferredBase = sanitizeImageBaseName(preferredName);
   const base = preferredBase || `img-${new Date().toISOString().slice(0, 10)}`;
@@ -37,7 +46,7 @@ function generateImageName(ext: string, dir: string, preferredName?: string): st
   let candidate = `${base}.${extName}`;
   let index = 2;
 
-  while (fs.existsSync(path.join(dir, candidate))) {
+  while (await pathExists(path.join(dir, candidate))) {
     candidate = `${base}-${index}.${extName}`;
     index += 1;
   }
@@ -63,19 +72,22 @@ export function registerImageHandlers() {
         let imagesPath: string;
 
         if (targetDir) {
-          imagesPath = path.join(targetDir, 'assets');
-          if (!fs.existsSync(imagesPath)) {
-            fs.mkdirSync(imagesPath, { recursive: true });
+          if (!isPathAllowed(targetDir)) {
+            throw new Error(`Access denied: ${targetDir}`);
           }
+          imagesPath = path.join(targetDir, 'assets');
+          await fs.promises.mkdir(imagesPath, { recursive: true });
+          allowPath(imagesPath);
         } else {
-          imagesPath = getImagesDir();
+          imagesPath = await getImagesDir();
         }
 
-        const fileName = generateImageName(ext, imagesPath, options?.fileName);
+        const fileName = await generateImageName(ext, imagesPath, options?.fileName);
         const relativePath = targetDir ? `assets/${fileName}` : `note-images/${fileName}`;
         const filePath = path.join(imagesPath, fileName);
 
-        fs.writeFileSync(filePath, buffer);
+        await fs.promises.writeFile(filePath, buffer);
+        allowPath(filePath);
 
         return {
           success: true,
@@ -107,11 +119,12 @@ export function registerImageHandlers() {
 
       const sourcePath = result.filePaths[0];
       const ext = path.extname(sourcePath).slice(1);
-      const imagesPath = getImagesDir();
-      const fileName = generateImageName(ext, imagesPath, path.basename(sourcePath));
+      const imagesPath = await getImagesDir();
+      const fileName = await generateImageName(ext, imagesPath, path.basename(sourcePath));
       const destPath = path.join(imagesPath, fileName);
 
-      fs.copyFileSync(sourcePath, destPath);
+      await fs.promises.copyFile(sourcePath, destPath);
+      allowPath(destPath);
 
       return {
         success: true,
@@ -129,14 +142,18 @@ export function registerImageHandlers() {
 
   ipcMain.handle('image:read', async (_event, relativePath: string) => {
     try {
-      const userDataPath = app.getPath('userData');
-      const filePath = path.join(userDataPath, relativePath);
-      
-      if (!fs.existsSync(filePath)) {
-        throw new Error('Image not found');
+      if (path.isAbsolute(relativePath)) {
+        throw new Error('Invalid image path');
       }
 
-      const buffer = fs.readFileSync(filePath);
+      const userDataPath = app.getPath('userData');
+      const filePath = path.resolve(userDataPath, relativePath);
+      if (!isPathAllowed(filePath)) {
+        throw new Error(`Access denied: ${relativePath}`);
+      }
+
+      await fs.promises.access(filePath, fs.constants.R_OK);
+      const buffer = await fs.promises.readFile(filePath);
       const base64 = buffer.toString('base64');
       const ext = path.extname(filePath).slice(1);
       const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`;

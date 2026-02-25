@@ -54,7 +54,7 @@ function App() {
       }
 
       try {
-        await (window as any).electronAPI?.settings?.set('theme', mode, 'appearance');
+        await window.electronAPI?.settings?.set('theme', mode, 'appearance');
       } catch (error) {
         console.error('Failed to save theme:', error);
       }
@@ -65,7 +65,7 @@ function App() {
   useEffect(() => {
     const loadTheme = async () => {
       try {
-        const savedTheme = await (window as any).electronAPI?.settings?.get('theme');
+        const savedTheme = await window.electronAPI?.settings?.get('theme');
         const mode: ThemeMode = savedTheme === 'dark' || savedTheme === 'auto' ? savedTheme : 'light';
         await applyTheme(mode);
       } catch (error) {

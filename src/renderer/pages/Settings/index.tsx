@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Switch, InputNumber, Button, Message, Divider, Space, Modal } from '@arco-design/web-react';
 import { IconSave, IconDownload, IconUpload } from '@arco-design/web-react/icon';
 import { ThemeMode } from '../../types/theme';
+import { summarizeBackupImport } from '@shared/utils/backup';
+import type { RuntimeCheckResult } from '@shared/types/ipc';
 import './styles.css';
 
 interface SettingsState {
@@ -12,6 +14,10 @@ interface SettingsState {
   autoSave: 'true' | 'false';
   dailyGoal: string;
 }
+
+type CoreSettings = Partial<
+  Record<'theme' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal', string>
+>;
 
 function Settings() {
   const [settings, setSettings] = useState<SettingsState>({
@@ -24,20 +30,22 @@ function Settings() {
   });
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
   const [checkingJava, setCheckingJava] = useState(false);
   const [checkingPython, setCheckingPython] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const data = await (window as any).electronAPI.settings.getAll();
+        const data: CoreSettings = await window.electronAPI.settings.getAll();
         const theme: ThemeMode = data.theme === 'dark' || data.theme === 'auto' ? data.theme : 'light';
+        const autoSave: 'true' | 'false' = data.autoSave === 'false' ? 'false' : 'true';
         setSettings({
           theme,
           fontSize: data.fontSize || '14',
           javaPath: data.javaPath || '',
           pythonPath: data.pythonPath || '',
-          autoSave: data.autoSave || 'true',
+          autoSave,
           dailyGoal: data.dailyGoal || '120',
         });
       } catch (error) {
@@ -51,12 +59,12 @@ function Settings() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await (window as any).electronAPI.settings.set('theme', settings.theme, 'appearance');
-      await (window as any).electronAPI.settings.set('fontSize', settings.fontSize, 'editor');
-      await (window as any).electronAPI.settings.set('javaPath', settings.javaPath, 'code');
-      await (window as any).electronAPI.settings.set('pythonPath', settings.pythonPath, 'code');
-      await (window as any).electronAPI.settings.set('autoSave', settings.autoSave, 'editor');
-      await (window as any).electronAPI.settings.set('dailyGoal', settings.dailyGoal, 'study');
+      await window.electronAPI.settings.set('theme', settings.theme, 'appearance');
+      await window.electronAPI.settings.set('fontSize', settings.fontSize, 'editor');
+      await window.electronAPI.settings.set('javaPath', settings.javaPath, 'code');
+      await window.electronAPI.settings.set('pythonPath', settings.pythonPath, 'code');
+      await window.electronAPI.settings.set('autoSave', settings.autoSave, 'editor');
+      await window.electronAPI.settings.set('dailyGoal', settings.dailyGoal, 'study');
       window.dispatchEvent(new CustomEvent('theme-mode-change', { detail: { mode: settings.theme } }));
       Message.success('设置已保存');
     } catch (error) {
@@ -70,9 +78,15 @@ function Settings() {
   const handleExportBackup = async () => {
     setExportLoading(true);
     try {
-      const result = await (window as any).electronAPI.export.backup();
+      const result = await window.electronAPI.export.backup();
       if (result.success) {
-        Message.success(`备份已保存到: ${result.path}`);
+        const counts = result.counts;
+        const summary = counts
+          ? `，包含 ${counts.todos} 个待办 / ${counts.studyPlans} 个计划 / ${counts.milestones} 个里程碑`
+          : '';
+        Message.success(`备份已保存到: ${result.path}${summary}`);
+      } else {
+        Message.error(result.error || '导出失败');
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -83,20 +97,50 @@ function Settings() {
   };
 
   const handleImportBackup = async () => {
+    const preview = await window.electronAPI.export.previewBackup();
+    if (!preview.success) {
+      if (preview.message !== '已取消选择') {
+        Message.error(preview.message);
+      }
+      return;
+    }
+
+    const counts = preview.summary?.counts;
+    const summary = counts
+      ? `待办 ${counts.todos} / 打卡 ${counts.checkIns} / 技能 ${counts.studyProgress} / 计划 ${counts.studyPlans} / 里程碑 ${counts.milestones}`
+      : '未知';
+    const warningText = preview.warnings?.length
+      ? `\n注意：预览发现 ${preview.warnings.length} 项潜在异常，导入时会尝试跳过无效数据。`
+      : '';
+
     Modal.confirm({
       title: '导入备份',
-      content: '导入备份将会合并现有数据，不会删除已有数据。确定要继续吗？',
+      content: `检测到备份数据：${summary}。导入将合并现有数据，不会删除已有数据，确定继续吗？${warningText}`,
       onOk: async () => {
+        setImportLoading(true);
+        const hide = Message.loading('正在导入备份...');
         try {
-          const result = await (window as any).electronAPI.export.importBackup();
+          const result = await window.electronAPI.export.importBackup(preview.filePath);
+          hide();
           if (result.success) {
-            Message.success(result.message);
+            const stats = result.stats;
+            const totals = stats ? summarizeBackupImport(stats) : null;
+            const summary = totals
+              ? `新增 ${totals.created} / 更新 ${totals.updated} / 跳过 ${totals.skipped}`
+              : '';
+            Message.success(summary ? `${result.message}（${summary}）` : result.message);
+            if (result.warnings && result.warnings.length > 0) {
+              Message.warning(`部分数据已跳过：${result.warnings.length} 项`);
+            }
           } else {
             Message.error(result.message);
           }
         } catch (error) {
+          hide();
           console.error('Import failed:', error);
-          Message.error('导入失败');
+          Message.error(error instanceof Error ? `导入失败：${error.message}` : '导入失败');
+        } finally {
+          setImportLoading(false);
         }
       },
     });
@@ -105,14 +149,14 @@ function Settings() {
   const handleCheckJava = async () => {
     setCheckingJava(true);
     try {
-      const result = await (window as any).electronAPI.code.checkJava(settings.javaPath || undefined);
+      const result: RuntimeCheckResult = await window.electronAPI.code.checkJava(settings.javaPath || undefined);
       if (result.success) {
         Message.success(`Java 可用：${result.version}`);
       } else {
         Message.error(`Java 检测失败：${result.error}`);
       }
-    } catch (error: any) {
-      Message.error(`Java 检测异常：${error.message}`);
+    } catch (error) {
+      Message.error(`Java 检测异常：${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setCheckingJava(false);
     }
@@ -121,14 +165,14 @@ function Settings() {
   const handleCheckPython = async () => {
     setCheckingPython(true);
     try {
-      const result = await (window as any).electronAPI.code.checkPython(settings.pythonPath || undefined);
+      const result: RuntimeCheckResult = await window.electronAPI.code.checkPython(settings.pythonPath || undefined);
       if (result.success) {
         Message.success(`Python 可用：${result.version}`);
       } else {
         Message.error(`Python 检测失败：${result.error}`);
       }
-    } catch (error: any) {
-      Message.error(`Python 检测异常：${error.message}`);
+    } catch (error) {
+      Message.error(`Python 检测异常：${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setCheckingPython(false);
     }
@@ -253,7 +297,7 @@ function Settings() {
                 <h4>导入备份</h4>
                 <p>从 JSON 备份文件恢复数据（会与现有数据合并）</p>
               </div>
-              <Button icon={<IconUpload />} onClick={handleImportBackup}>
+              <Button icon={<IconUpload />} loading={importLoading} onClick={handleImportBackup}>
                 导入备份
               </Button>
             </div>

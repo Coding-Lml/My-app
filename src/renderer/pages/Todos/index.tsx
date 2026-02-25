@@ -58,7 +58,7 @@ function Todos() {
 
   const loadTodos = async () => {
     try {
-      const data = await (window as any).electronAPI.todos.getAll();
+      const data = await window.electronAPI.todos.getAll();
       setTodos(data);
     } catch (error) {
       console.error('Failed to load todos:', error);
@@ -69,7 +69,7 @@ function Todos() {
     if (!newTodo.title.trim()) return;
 
     try {
-      await (window as any).electronAPI.todos.create(newTodo);
+      await window.electronAPI.todos.create(newTodo);
       setNewTodo({
         title: '',
         description: '',
@@ -86,7 +86,7 @@ function Todos() {
 
   const handleToggleTodo = async (todo: Todo) => {
     try {
-      await (window as any).electronAPI.todos.update(todo.id, {
+      await window.electronAPI.todos.update(todo.id, {
         status: todo.status === 2 ? 0 : 2,
       });
       loadTodos();
@@ -101,7 +101,7 @@ function Todos() {
       content: '确定要删除这个待办事项吗？',
       onOk: async () => {
         try {
-          await (window as any).electronAPI.todos.delete(id);
+          await window.electronAPI.todos.delete(id);
           loadTodos();
         } catch (error) {
           console.error('Failed to delete todo:', error);

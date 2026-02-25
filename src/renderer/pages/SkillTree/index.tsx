@@ -12,6 +12,7 @@ import {
   Message,
 } from '@arco-design/web-react';
 import { IconEdit } from '@arco-design/web-react/icon';
+import { averageProgress } from '@shared/utils/ui';
 import './styles.css';
 
 interface Skill {
@@ -48,7 +49,7 @@ function SkillTree() {
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLevel, setEditLevel] = useState(0);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Java']));
+  const [expandedSkillIds, setExpandedSkillIds] = useState<Set<number>>(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [newSkill, setNewSkill] = useState<{ name: string; category: string; parentId: number | null }>({ name: '', category: '', parentId: null });
@@ -60,7 +61,7 @@ function SkillTree() {
 
   const loadSkills = async () => {
     try {
-      const data = await (window as any).electronAPI.progress.getAll();
+      const data = await window.electronAPI.progress.getAll();
       const skillMap = new Map<number, Skill>();
       const rootSkills: Skill[] = [];
 
@@ -82,6 +83,12 @@ function SkillTree() {
       });
 
       setSkills(rootSkills);
+      setExpandedSkillIds(prev => {
+        if (prev.size > 0) {
+          return prev;
+        }
+        return new Set(rootSkills.map(skill => skill.id));
+      });
     } catch (error) {
       console.error('Failed to load skills:', error);
     }
@@ -91,7 +98,7 @@ function SkillTree() {
     if (!selectedSkill) return;
 
     try {
-      await (window as any).electronAPI.progress.update(selectedSkill.skill_name, {
+      await window.electronAPI.progress.update(selectedSkill.skill_name, {
         level: editLevel,
       });
       Message.success('进度已更新');
@@ -109,7 +116,7 @@ function SkillTree() {
       return;
     }
     try {
-      await (window as any).electronAPI.progress.create({
+      await window.electronAPI.progress.create({
         skill_name: newSkill.name,
         category: newSkill.category || undefined,
         parent_skill_id: newSkill.parentId ?? null,
@@ -137,7 +144,7 @@ function SkillTree() {
       return;
     }
     try {
-      await (window as any).electronAPI.progress.updateById(selectedSkill.id, {
+      await window.electronAPI.progress.updateById(selectedSkill.id, {
         skill_name: meta.name,
         category: meta.category || null,
         parent_skill_id: meta.parentId ?? null,
@@ -158,7 +165,7 @@ function SkillTree() {
       content: '删除后其子技能的父子关系会被清除，确认删除？',
       onOk: async () => {
         try {
-          await (window as any).electronAPI.progress.delete(selectedSkill.id);
+          await window.electronAPI.progress.delete(selectedSkill.id);
           Message.success('已删除');
           setSelectedSkill(null);
           loadSkills();
@@ -170,14 +177,14 @@ function SkillTree() {
     });
   };
 
-  const toggleCategory = (category: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(category)) {
-      newExpanded.delete(category);
+  const toggleSkill = (id: number) => {
+    const newExpanded = new Set(expandedSkillIds);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
     } else {
-      newExpanded.add(category);
+      newExpanded.add(id);
     }
-    setExpandedCategories(newExpanded);
+    setExpandedSkillIds(newExpanded);
   };
 
   const formatTime = (minutes: number) => {
@@ -195,7 +202,7 @@ function SkillTree() {
 
   const renderSkillNode = (skill: Skill, depth: number = 0) => {
     const hasChildren = skill.children && skill.children.length > 0;
-    const isExpanded = expandedCategories.has(skill.skill_name);
+    const isExpanded = expandedSkillIds.has(skill.id);
 
     return (
       <div key={skill.id} className="skill-node" style={{ marginLeft: depth * 24 }}>
@@ -209,7 +216,7 @@ function SkillTree() {
                 className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleCategory(skill.skill_name);
+                  toggleSkill(skill.id);
                 }}
               >
                 ▶
@@ -236,9 +243,12 @@ function SkillTree() {
     );
   };
 
-  const overallProgress = skills.length > 0
-    ? Math.round(skills.reduce((sum, s) => sum + s.level, 0) / skills.length)
-    : 0;
+  const flattenSkills = (items: Skill[]): Skill[] => {
+    return items.flatMap(item => [item, ...(item.children ? flattenSkills(item.children) : [])]);
+  };
+
+  const allSkills = flattenSkills(skills);
+  const overallProgress = averageProgress(allSkills.map(skill => skill.level));
 
   return (
     <div className="skill-tree-page">

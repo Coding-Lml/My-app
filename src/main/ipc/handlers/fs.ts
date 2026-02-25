@@ -2,6 +2,12 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { watch, FSWatcher } from 'fs';
+import {
+  allowPath,
+  getPathAccessError,
+  isParentPathAllowed,
+  isPathAllowed,
+} from '../../security/pathAccess';
 
 const watchers = new Map<string, FSWatcher>();
 const MARKDOWN_EXTENSIONS = ['md', 'txt', 'markdown'];
@@ -35,7 +41,7 @@ function normalizeExtensions(extensions?: string[]): string[] {
   }
 
   return extensions
-    .map((ext) => ext.trim().toLowerCase().replace(/^\./, ''))
+    .map(ext => ext.trim().toLowerCase().replace(/^\./, ''))
     .filter(Boolean);
 }
 
@@ -47,6 +53,14 @@ function shouldIncludeFile(fileName: string, extensions: string[]): boolean {
   return fileExt ? extensions.includes(fileExt) : false;
 }
 
+function ensurePathAllowed(targetPath: string, allowParent = false): string | null {
+  const allowed = isPathAllowed(targetPath) || (allowParent && isParentPathAllowed(targetPath));
+  if (allowed) {
+    return null;
+  }
+  return getPathAccessError(targetPath);
+}
+
 export function registerFsHandlers() {
   // Open folder dialog
   ipcMain.handle('fs:openFolder', async () => {
@@ -56,6 +70,7 @@ export function registerFsHandlers() {
     });
 
     if (result.filePaths && result.filePaths.length > 0) {
+      allowPath(result.filePaths[0]);
       return { success: true, folderPath: result.filePaths[0] };
     }
     return { success: false };
@@ -63,9 +78,14 @@ export function registerFsHandlers() {
 
   // Read folder contents
   ipcMain.handle('fs:readFolder', async (_, folderPath: string, options?: FsReadFolderOptions) => {
+    const denied = ensurePathAllowed(folderPath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
       const extensions = normalizeExtensions(options?.extensions);
-      const items = fs.readdirSync(folderPath, { withFileTypes: true });
+      const items = await fs.promises.readdir(folderPath, { withFileTypes: true });
       const files = items
         .filter(item => item.isFile() && shouldIncludeFile(item.name, extensions))
         .map(item => ({
@@ -73,7 +93,7 @@ export function registerFsHandlers() {
           path: path.join(folderPath, item.name),
           isDirectory: false,
         }));
-      
+
       const folders = items
         .filter(item => item.isDirectory() && !item.name.startsWith('.') && item.name !== 'node_modules')
         .map(item => ({
@@ -91,8 +111,13 @@ export function registerFsHandlers() {
 
   // Read file content
   ipcMain.handle('fs:readFile', async (_, filePath: string) => {
+    const denied = ensurePathAllowed(filePath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = await fs.promises.readFile(filePath, 'utf-8');
       return { success: true, content };
     } catch (error) {
       console.error('Failed to read file:', error);
@@ -102,8 +127,14 @@ export function registerFsHandlers() {
 
   // Write file content
   ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
+    const denied = ensurePathAllowed(filePath, true);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
-      fs.writeFileSync(filePath, content, 'utf-8');
+      await fs.promises.writeFile(filePath, content, 'utf-8');
+      allowPath(filePath);
       return { success: true };
     } catch (error) {
       console.error('Failed to write file:', error);
@@ -113,13 +144,24 @@ export function registerFsHandlers() {
 
   // Create new file
   ipcMain.handle('fs:createFile', async (_, folderPath: string, fileName: string) => {
+    const denied = ensurePathAllowed(folderPath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
       const filePath = path.join(folderPath, fileName);
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, '', 'utf-8');
-        return { success: true, filePath };
-      }
+      await fs.promises.access(filePath, fs.constants.F_OK);
       return { success: false, error: '文件已存在' };
+    } catch {
+      // Expected when file does not exist.
+    }
+
+    try {
+      const filePath = path.join(folderPath, fileName);
+      await fs.promises.writeFile(filePath, '', 'utf-8');
+      allowPath(filePath);
+      return { success: true, filePath };
     } catch (error) {
       console.error('Failed to create file:', error);
       return { success: false, error: (error as Error).message };
@@ -128,8 +170,13 @@ export function registerFsHandlers() {
 
   // Delete file
   ipcMain.handle('fs:deleteFile', async (_, filePath: string) => {
+    const denied = ensurePathAllowed(filePath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
-      fs.unlinkSync(filePath);
+      await fs.promises.unlink(filePath);
       return { success: true };
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -139,8 +186,18 @@ export function registerFsHandlers() {
 
   // Rename file
   ipcMain.handle('fs:renameFile', async (_, oldPath: string, newPath: string) => {
+    const deniedOld = ensurePathAllowed(oldPath);
+    if (deniedOld) {
+      return { success: false, error: deniedOld };
+    }
+    const deniedNew = ensurePathAllowed(newPath, true);
+    if (deniedNew) {
+      return { success: false, error: deniedNew };
+    }
+
     try {
-      fs.renameSync(oldPath, newPath);
+      await fs.promises.rename(oldPath, newPath);
+      allowPath(newPath);
       return { success: true };
     } catch (error) {
       console.error('Failed to rename file:', error);
@@ -150,12 +207,17 @@ export function registerFsHandlers() {
 
   // Watch folder for changes
   ipcMain.handle('fs:watchFolder', async (_, folderPath: string, options?: FsWatchFolderOptions) => {
+    const denied = ensurePathAllowed(folderPath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
+      const watcherKey = path.resolve(folderPath);
       const extensions = normalizeExtensions(options?.extensions);
-      // Unwatch if already watching
-      if (watchers.has(folderPath)) {
-        watchers.get(folderPath)!.close();
-        watchers.delete(folderPath);
+      if (watchers.has(watcherKey)) {
+        watchers.get(watcherKey)!.close();
+        watchers.delete(watcherKey);
       }
 
       const watcher = watch(folderPath, { recursive: true }, (eventType, filename) => {
@@ -167,7 +229,7 @@ export function registerFsHandlers() {
         }
       });
 
-      watchers.set(folderPath, watcher);
+      watchers.set(watcherKey, watcher);
       return { success: true };
     } catch (error) {
       console.error('Failed to watch folder:', error);
@@ -178,9 +240,10 @@ export function registerFsHandlers() {
   // Unwatch folder
   ipcMain.handle('fs:unwatchFolder', async (_, folderPath: string) => {
     try {
-      if (watchers.has(folderPath)) {
-        watchers.get(folderPath)!.close();
-        watchers.delete(folderPath);
+      const watcherKey = path.resolve(folderPath);
+      if (watchers.has(watcherKey)) {
+        watchers.get(watcherKey)!.close();
+        watchers.delete(watcherKey);
       }
       return { success: true };
     } catch (error) {
@@ -191,6 +254,10 @@ export function registerFsHandlers() {
 
   // Reveal in Finder
   ipcMain.handle('fs:reveal', async (_, filePath: string) => {
+    const denied = ensurePathAllowed(filePath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
     shell.showItemInFolder(filePath);
     return { success: true };
   });
@@ -202,51 +269,61 @@ export function registerFsHandlers() {
       filters: options?.filters || [
         { name: 'Markdown Files', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mkdn'] },
         { name: 'Text Files', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] }
+        { name: 'All Files', extensions: ['*'] },
       ],
       properties: ['openFile'],
     });
 
     if (result.filePaths && result.filePaths.length > 0) {
+      allowPath(result.filePaths[0]);
       return { success: true, filePath: result.filePaths[0] };
     }
     return { success: false };
   });
 
   // Save file dialog (Save As)
-  ipcMain.handle('fs:saveFileDialog', async (_, content: string, defaultName?: string, options?: FsSaveFileDialogOptions) => {
-    const result = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow()!, {
-      title: options?.title || '保存文件',
-      defaultPath: defaultName || 'untitled.md',
-      filters: options?.filters || [
-        { name: 'Markdown Files', extensions: ['md'] },
-        { name: 'Text Files', extensions: ['txt'] },
-      ],
-    });
+  ipcMain.handle(
+    'fs:saveFileDialog',
+    async (_, content: string, defaultName?: string, options?: FsSaveFileDialogOptions) => {
+      const result = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow()!, {
+        title: options?.title || '保存文件',
+        defaultPath: defaultName || 'untitled.md',
+        filters: options?.filters || [
+          { name: 'Markdown Files', extensions: ['md'] },
+          { name: 'Text Files', extensions: ['txt'] },
+        ],
+      });
 
-    if (!result.canceled && result.filePath) {
-      try {
-        fs.writeFileSync(result.filePath, content, 'utf-8');
-        return { success: true, filePath: result.filePath };
-      } catch (error) {
-        console.error('Failed to save file:', error);
-        return { success: false, error: (error as Error).message };
+      if (!result.canceled && result.filePath) {
+        try {
+          await fs.promises.writeFile(result.filePath, content, 'utf-8');
+          allowPath(result.filePath);
+          return { success: true, filePath: result.filePath };
+        } catch (error) {
+          console.error('Failed to save file:', error);
+          return { success: false, error: (error as Error).message };
+        }
       }
+      return { success: false };
     }
-    return { success: false };
-  });
+  );
 
   // Get file stats (for displaying file info)
   ipcMain.handle('fs:getFileStats', async (_, filePath: string) => {
+    const denied = ensurePathAllowed(filePath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
-      const stats = fs.statSync(filePath);
+      const stats = await fs.promises.stat(filePath);
       return {
         success: true,
         stats: {
           size: stats.size,
           modified: stats.mtimeMs,
           created: stats.birthtimeMs,
-        }
+        },
       };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -255,10 +332,16 @@ export function registerFsHandlers() {
 
   // Check if file exists
   ipcMain.handle('fs:fileExists', async (_, filePath: string) => {
+    const denied = ensurePathAllowed(filePath);
+    if (denied) {
+      return { success: false, error: denied };
+    }
+
     try {
-      return { success: true, exists: fs.existsSync(filePath) };
-    } catch (error) {
-      return { success: false, error: (error as Error).message };
+      await fs.promises.access(filePath, fs.constants.F_OK);
+      return { success: true, exists: true };
+    } catch {
+      return { success: true, exists: false };
     }
   });
 }

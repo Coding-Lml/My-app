@@ -1,19 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
-  ElectronAPI,
-  FileDialogFilter,
+  ElectronAPI as ElectronApiContract,
   FsOpenFileOptions,
   FsReadFolderOptions,
   FsSaveFileDialogOptions,
   Milestone,
-  PomodoroSession,
   StudyPlan,
   StudyPlanUpdatePayload,
   StudyProgress,
   Todo,
 } from '@shared/types/ipc';
 
-const api: ElectronAPI = {
+const api: ElectronApiContract = {
   // Todos
   todos: {
     getAll: () => ipcRenderer.invoke('todos:getAll'),
@@ -30,24 +28,6 @@ const api: ElectronAPI = {
     start: (date: number) => ipcRenderer.invoke('checkins:start', date),
     end: (date: number, duration: number) => ipcRenderer.invoke('checkins:end', date, duration),
     stats: () => ipcRenderer.invoke('checkins:stats'),
-  },
-
-  // Pomodoro
-  pomodoro: {
-    getAll: (limit?: number) => ipcRenderer.invoke('pomodoro:getAll', limit),
-    save: (session: Partial<PomodoroSession>) => ipcRenderer.invoke('pomodoro:save', session),
-    update: (id: number, updates: Partial<PomodoroSession>) => ipcRenderer.invoke('pomodoro:update', id, updates),
-    getStats: (date: number) => ipcRenderer.invoke('pomodoro:getStats', date),
-    getTodayStats: () => ipcRenderer.invoke('pomodoro:getTodayStats'),
-  },
-
-  // Code Snippets
-  snippets: {
-    getAll: () => ipcRenderer.invoke('snippets:getAll'),
-    create: snippet => ipcRenderer.invoke('snippets:create', snippet),
-    update: (id: number, snippet) => ipcRenderer.invoke('snippets:update', id, snippet),
-    delete: (id: number) => ipcRenderer.invoke('snippets:delete', id),
-    incrementUsage: (id: number) => ipcRenderer.invoke('snippets:incrementUsage', id),
   },
 
   // Code Execution
@@ -68,12 +48,6 @@ const api: ElectronAPI = {
       ipcRenderer.invoke('progress:updateById', id, updates),
     delete: (id: number) =>
       ipcRenderer.invoke('progress:delete', id),
-  },
-
-  // Achievements
-  achievements: {
-    getAll: () => ipcRenderer.invoke('achievements:getAll'),
-    getUnlocked: () => ipcRenderer.invoke('achievements:getUnlocked'),
   },
 
   // Settings
@@ -103,7 +77,8 @@ const api: ElectronAPI = {
   // Export
   export: {
     backup: () => ipcRenderer.invoke('export:backup'),
-    importBackup: () => ipcRenderer.invoke('import:backup'),
+    previewBackup: () => ipcRenderer.invoke('export:previewBackup'),
+    importBackup: (filePath?: string) => ipcRenderer.invoke('import:backup', filePath),
     toPDF: (content: string, title: string) => ipcRenderer.invoke('export:pdf', content, title),
     toPDFAdvanced: (
       content: string,
@@ -116,12 +91,6 @@ const api: ElectronAPI = {
       }
     ) =>
       ipcRenderer.invoke('export:pdfAdvanced', content, title, options),
-  },
-
-  // File save dialog
-  file: {
-    save: (content: string, defaultPath?: string, filters?: FileDialogFilter[]) =>
-      ipcRenderer.invoke('file:save', content, defaultPath, filters),
   },
 
   // File system - open folder like Typora
@@ -143,7 +112,7 @@ const api: ElectronAPI = {
     watchFolder: (folderPath: string, options?: FsReadFolderOptions) =>
       ipcRenderer.invoke('fs:watchFolder', folderPath, options),
     unwatchFolder: (folderPath: string) => ipcRenderer.invoke('fs:unwatchFolder', folderPath),
-    onFolderChange: (callback: (event: Event, data: { eventType: string; filename: string; folderPath: string }) => void) =>
+    onFolderChange: (callback: (event: unknown, data: { eventType: string; filename: string; folderPath: string }) => void) =>
       ipcRenderer.on('fs:folderChange', callback),
     removeFolderChangeListener: () => ipcRenderer.removeAllListeners('fs:folderChange'),
     reveal: (filePath: string) => ipcRenderer.invoke('fs:reveal', filePath),

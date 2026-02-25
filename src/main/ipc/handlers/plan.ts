@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { Database } from '../../database';
+import type { StudyPlanUpdatePayload } from '@shared/types/ipc';
 
 export function registerPlanHandlers(db: Database) {
   // Study Plans
@@ -15,9 +16,17 @@ export function registerPlanHandlers(db: Database) {
     return db.createStudyPlan(plan);
   });
 
-  ipcMain.handle('plans:update', (_, id: number, updates) => {
-    db.updateStudyPlan(id, updates);
-    return { success: true };
+  ipcMain.handle('plans:update', (_, id: number, updates: StudyPlanUpdatePayload) => {
+    try {
+      db.updateStudyPlan(id, updates);
+      const plan = db.getStudyPlanById(id);
+      return { success: true, plan };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '更新失败',
+      };
+    }
   });
 
   ipcMain.handle('plans:delete', (_, id: number) => {

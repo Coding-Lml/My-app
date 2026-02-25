@@ -10,6 +10,7 @@ import { registerImageHandlers } from './ipc/handlers/image';
 import { registerFsHandlers } from './ipc/handlers/fs';
 import { Database } from './database';
 import * as fs from 'fs';
+import { allowPath, isPathAllowed } from './security/pathAccess';
 
 let mainWindow: BrowserWindow | null = null;
 let db: Database | null = null;
@@ -29,7 +30,7 @@ function createWindow() {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#ffffff',
@@ -54,15 +55,46 @@ async function initializeDatabase() {
   await db.initialize();
 }
 
+function restoreAuthorizedPathsFromSettings() {
+  if (!db) return;
+
+  const singlePathKeys = ['notesRootFolder', 'codeWorkspaceFolder'];
+  singlePathKeys.forEach(key => {
+    const value = db?.getSetting(key);
+    if (value) {
+      allowPath(value);
+    }
+  });
+
+  const listPathKeys = ['recentFiles', 'codeRecentFiles'];
+  listPathKeys.forEach(key => {
+    const raw = db?.getSetting(key);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed
+          .filter((item): item is string => typeof item === 'string' && item.length > 0)
+          .forEach(item => allowPath(item));
+      }
+    } catch {
+      // Ignore invalid JSON settings.
+    }
+  });
+}
+
 // Register file protocol for loading local images
 function registerFileProtocol() {
   protocol.handle('local-file', async (request) => {
     try {
       const urlPath = decodeURIComponent(request.url.substring('local-file://'.length));
+      if (!isPathAllowed(urlPath)) {
+        return new Response('Access denied', { status: 403 });
+      }
 
-      // Check if file exists
-      if (fs.existsSync(urlPath)) {
-        const buffer = fs.readFileSync(urlPath);
+      try {
+        await fs.promises.access(urlPath, fs.constants.R_OK);
+        const buffer = await fs.promises.readFile(urlPath);
         const ext = path.extname(urlPath).toLowerCase();
         const mimeTypeMap: Record<string, string> = {
           '.png': 'image/png',
@@ -80,10 +112,9 @@ function registerFileProtocol() {
         return new Response(buffer, {
           headers: {
             'Content-Type': mimeType,
-            'Access-Control-Allow-Origin': '*',
           },
         });
-      } else {
+      } catch {
         return new Response('File not found', { status: 404 });
       }
     } catch (error) {
@@ -95,6 +126,7 @@ function registerFileProtocol() {
 
 app.whenReady().then(async () => {
   await initializeDatabase();
+  restoreAuthorizedPathsFromSettings();
 
   // Register file protocol before creating window
   registerFileProtocol();

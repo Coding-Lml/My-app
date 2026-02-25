@@ -53,34 +53,6 @@ function detectJavaEntry(code: string): { className: string; packageName: string
 }
 
 export function registerCodeHandlers(db: Database) {
-  // Get code snippets
-  ipcMain.handle('snippets:getAll', () => {
-    return db.getCodeSnippets();
-  });
-
-  // Create snippet
-  ipcMain.handle('snippets:create', (_, snippet) => {
-    return db.createCodeSnippet(snippet);
-  });
-
-  // Update snippet
-  ipcMain.handle('snippets:update', (_, id: number, snippet) => {
-    db.updateCodeSnippet(id, snippet);
-    return { success: true };
-  });
-
-  // Delete snippet
-  ipcMain.handle('snippets:delete', (_, id: number) => {
-    db.deleteCodeSnippet(id);
-    return { success: true };
-  });
-
-  // Increment snippet usage
-  ipcMain.handle('snippets:incrementUsage', (_, id: number) => {
-    db.incrementSnippetUsage(id);
-    return { success: true };
-  });
-
   // Run Java code
   ipcMain.handle('code:runJava', async (_, code: string, javaPath?: string) => {
     const { javaExe, javacExe } = resolveJavaExecutables(javaPath);

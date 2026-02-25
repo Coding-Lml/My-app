@@ -95,8 +95,8 @@ function StudyPlan() {
   const loadData = async () => {
     try {
       const [plansData, skillsData] = await Promise.all([
-        (window as any).electronAPI.plans.getAll(),
-        (window as any).electronAPI.progress.getAll(),
+        window.electronAPI.plans.getAll(),
+        window.electronAPI.progress.getAll(),
       ]);
       setPlans(plansData);
       setSkills(skillsData.filter((s: Skill) => !s.parent_skill_id));
@@ -107,7 +107,7 @@ function StudyPlan() {
 
   const loadMilestones = async (planId: number) => {
     try {
-      const data = await (window as any).electronAPI.milestones.getByPlanId(planId);
+      const data = await window.electronAPI.milestones.getByPlanId(planId);
       setMilestones(data);
     } catch (error) {
       console.error('Failed to load milestones:', error);
@@ -126,7 +126,7 @@ function StudyPlan() {
     }
 
     try {
-      await (window as any).electronAPI.plans.create(newPlan);
+      await window.electronAPI.plans.create(newPlan);
       Message.success('计划创建成功');
       setShowPlanModal(false);
       resetPlanForm();
@@ -141,17 +141,33 @@ function StudyPlan() {
     if (!editingPlan || !newPlan.title.trim()) return;
 
     try {
-      await (window as any).electronAPI.plans.update(editingPlan.id, {
+      const result = await window.electronAPI.plans.update(editingPlan.id, {
         title: newPlan.title,
         description: newPlan.description,
+        skill_id: newPlan.skill_id,
+        skill_name: newPlan.skill_name || null,
+        start_date: newPlan.start_date,
+        end_date: newPlan.end_date,
         target_hours: newPlan.target_hours,
+        completed_hours: editingPlan.completed_hours,
+        status: editingPlan.status,
         priority: newPlan.priority,
       });
+
+      if (!result.success) {
+        Message.error(result.error || '更新失败');
+        return;
+      }
+
       Message.success('更新成功');
       setShowPlanModal(false);
       setEditingPlan(null);
       resetPlanForm();
-      loadData();
+      await loadData();
+      if (result.plan?.id) {
+        setSelectedPlan(result.plan);
+        await loadMilestones(result.plan.id);
+      }
     } catch (error) {
       console.error('Failed to update plan:', error);
       Message.error('更新失败');
@@ -164,7 +180,7 @@ function StudyPlan() {
       content: '确定要删除这个学习计划吗？相关的里程碑也会被删除。',
       onOk: async () => {
         try {
-          await (window as any).electronAPI.plans.delete(id);
+          await window.electronAPI.plans.delete(id);
           Message.success('删除成功');
           if (selectedPlan?.id === id) {
             setSelectedPlan(null);
@@ -186,7 +202,7 @@ function StudyPlan() {
     }
 
     try {
-      await (window as any).electronAPI.milestones.create({
+      await window.electronAPI.milestones.create({
         plan_id: selectedPlan.id,
         title: newMilestone.title,
         description: newMilestone.description,
@@ -205,7 +221,7 @@ function StudyPlan() {
 
   const handleToggleMilestone = async (milestone: Milestone) => {
     try {
-      await (window as any).electronAPI.milestones.update(milestone.id, {
+      await window.electronAPI.milestones.update(milestone.id, {
         completed: milestone.completed ? 0 : 1,
       });
       loadMilestones(selectedPlan!.id);
@@ -216,7 +232,7 @@ function StudyPlan() {
 
   const handleDeleteMilestone = async (id: number) => {
     try {
-      await (window as any).electronAPI.milestones.delete(id);
+      await window.electronAPI.milestones.delete(id);
       loadMilestones(selectedPlan!.id);
     } catch (error) {
       console.error('Failed to delete milestone:', error);

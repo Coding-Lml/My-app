@@ -335,7 +335,7 @@ function findNearestHeadingIdBeforeOffset(
 
 async function saveImage(imageData: string, targetDir?: string, fileName?: string): Promise<string | null> {
   try {
-    const result = await (window as any).electronAPI.image.save(imageData, targetDir, { fileName });
+    const result = await window.electronAPI.image.save(imageData, targetDir, { fileName });
     if (result.success && result.relativePath) {
       return result.relativePath;
     }
@@ -551,7 +551,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
       }
 
       if (noLeadingSlashPath.startsWith('note-images/')) {
-        const result = await (window as any).electronAPI.image.read(noLeadingSlashPath);
+        const result = await window.electronAPI.image.read(noLeadingSlashPath);
         if (result.success && result.data) {
           displayImageCacheRef.current.set(cacheKey, result.data);
           return result.data;

@@ -1,6 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
+import type { StudyPlanUpdatePayload } from '@shared/types/ipc';
+import { resolveStudyPlanDateRange, validateTargetHours } from '@shared/utils/studyPlan';
 
 const DB_VERSION = 3;
 
@@ -678,6 +680,49 @@ export class Database {
     return this.parseResults<StudyProgress>(result);
   }
 
+  upsertStudyProgressByName(
+    progress: Partial<StudyProgress> & { skill_name: string; parent_skill_name?: string | null }
+  ): 'created' | 'updated' {
+    if (!this.db) throw new Error('Database not initialized');
+    const now = Date.now();
+    const existing = this.db.exec(
+      `SELECT id FROM study_progress WHERE skill_name = ${this.escape(progress.skill_name)}`
+    );
+    const parentName = progress.parent_skill_name;
+    let parentIdSql = 'NULL';
+
+    if (parentName) {
+      parentIdSql = `(SELECT id FROM study_progress WHERE skill_name = ${this.escape(parentName)} LIMIT 1)`;
+    } else if (progress.parent_skill_id !== undefined && progress.parent_skill_id !== null) {
+      parentIdSql = String(progress.parent_skill_id);
+    }
+
+    if (existing.length > 0 && existing[0].values.length > 0) {
+      const id = Number(existing[0].values[0][0]);
+      const setClauses: string[] = [
+        `category = ${progress.category ? this.escape(progress.category) : 'NULL'}`,
+        `level = ${progress.level ?? 0}`,
+        `target_level = ${progress.target_level ?? 100}`,
+        `time_spent = ${progress.time_spent ?? 0}`,
+        `notes_count = ${progress.notes_count ?? 0}`,
+        `code_count = ${progress.code_count ?? 0}`,
+        `parent_skill_id = ${parentIdSql}`,
+        `order_index = ${progress.order_index ?? 0}`,
+        `updated_at = ${progress.updated_at ?? now}`,
+      ];
+      this.db.run(`UPDATE study_progress SET ${setClauses.join(', ')} WHERE id = ${id}`);
+      this.save();
+      return 'updated';
+    }
+
+    this.db.run(`
+      INSERT INTO study_progress (skill_name, category, level, target_level, time_spent, notes_count, code_count, parent_skill_id, order_index, updated_at)
+      VALUES (${this.escape(progress.skill_name)}, ${progress.category ? this.escape(progress.category) : 'NULL'}, ${progress.level ?? 0}, ${progress.target_level ?? 100}, ${progress.time_spent ?? 0}, ${progress.notes_count ?? 0}, ${progress.code_count ?? 0}, ${parentIdSql}, ${progress.order_index ?? 0}, ${progress.updated_at ?? now})
+    `);
+    this.save();
+    return 'created';
+  }
+
   updateStudyProgress(skillName: string, updates: Partial<StudyProgress>): void {
     if (!this.db) throw new Error('Database not initialized');
     const now = Date.now();
@@ -798,6 +843,24 @@ export class Database {
       const result2 = this.db.exec(`SELECT * FROM check_ins WHERE date = ${date}`);
       return this.parseRow<CheckIn>(result2[0], 0);
     }
+  }
+
+  createOrUpdateCheckInFromBackup(checkIn: Partial<CheckIn> & { date: number }): 'created' | 'updated' {
+    if (!this.db) throw new Error('Database not initialized');
+    const existing = this.db.exec(`SELECT id FROM check_ins WHERE date = ${checkIn.date}`);
+    const action: 'created' | 'updated' =
+      existing.length > 0 && existing[0].values.length > 0 ? 'updated' : 'created';
+
+    this.createOrUpdateCheckIn(checkIn.date, {
+      start_time: checkIn.start_time ?? null,
+      end_time: checkIn.end_time ?? null,
+      duration: checkIn.duration ?? 0,
+      tasks_completed: checkIn.tasks_completed ?? 0,
+      notes_count: checkIn.notes_count ?? 0,
+      code_runs: checkIn.code_runs ?? 0,
+    });
+
+    return action;
   }
 
   // Settings operations
@@ -924,7 +987,7 @@ export class Database {
     return this.getStudyPlanById(id);
   }
 
-  updateStudyPlan(id: number, updates: any): void {
+  updateStudyPlan(id: number, updates: StudyPlanUpdatePayload): void {
     if (!this.db) throw new Error('Database not initialized');
     const now = Date.now();
 
@@ -946,15 +1009,15 @@ export class Database {
       if (!current) {
         throw new Error('Study plan not found');
       }
-      const start = updates.start_date ?? current.start_date;
-      const end = updates.end_date ?? current.end_date;
-      if (end < start) {
-        throw new Error('结束日期不能早于开始日期');
+      const range = resolveStudyPlanDateRange(current.start_date, current.end_date, updates);
+      if (range.error) {
+        throw new Error(range.error);
       }
     }
 
-    if (updates.target_hours !== undefined && Number(updates.target_hours) < 1) {
-      throw new Error('目标学习时长必须大于等于 1 小时');
+    const targetHoursError = validateTargetHours(updates.target_hours);
+    if (targetHoursError) {
+      throw new Error(targetHoursError);
     }
 
     setClauses.push(`updated_at = ${now}`);

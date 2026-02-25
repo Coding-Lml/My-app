@@ -11,6 +11,7 @@
     "build:mac": "vite build && tsc -p tsconfig.main.json && electron-builder --mac",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
+    "test": "vitest run --root .",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""
   },
   "author": "",

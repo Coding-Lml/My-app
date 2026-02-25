@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconSearch, IconSun, IconMoon, IconDownload } from '@arco-design/web-react/icon';
 import { COMMAND_NAV_ITEMS } from '../../config/navigation';
 import { ResolvedTheme, ThemeMode } from '../../types/theme';
+import { clampSelectionIndex } from '@shared/utils/ui';
 import './styles.css';
 
 interface Command {
@@ -69,14 +70,27 @@ function CommandPalette({ visible, onClose, onToggleTheme, themeMode, resolvedTh
     setSelectedIndex(0);
   }, [search]);
 
+  useEffect(() => {
+    if (filteredCommands.length === 0) {
+      setSelectedIndex(0);
+      return;
+    }
+    setSelectedIndex(prev => clampSelectionIndex(prev, filteredCommands.length));
+  }, [filteredCommands.length]);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      if (filteredCommands.length === 0) {
+        setSelectedIndex(0);
+        return;
+      }
+
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, filteredCommands.length - 1));
+        setSelectedIndex(prev => clampSelectionIndex(prev + 1, filteredCommands.length));
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setSelectedIndex((prev) => Math.max(prev - 1, 0));
+        setSelectedIndex(prev => clampSelectionIndex(prev - 1, filteredCommands.length));
       } else if (event.key === 'Enter' && filteredCommands[selectedIndex]) {
         event.preventDefault();
         filteredCommands[selectedIndex].action();

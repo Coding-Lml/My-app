@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron';
-import dayjs from 'dayjs';
 import { Database } from '../../database';
 
 export function registerStudyHandlers(db: Database) {
@@ -71,27 +70,5 @@ export function registerStudyHandlers(db: Database) {
       thisMonthDays: thisMonth.length,
       thisMonthDuration: thisMonth.reduce((sum, c) => sum + c.duration, 0),
     };
-  });
-
-  ipcMain.handle('pomodoro:getAll', (_event, limit?: number) => {
-    return db.getPomodoroSessions(limit);
-  });
-
-  ipcMain.handle('pomodoro:save', (_event, session) => {
-    return db.createPomodoroSession(session);
-  });
-
-  ipcMain.handle('pomodoro:update', (_event, id: number, updates) => {
-    db.updatePomodoroSession(id, updates);
-    return { success: true };
-  });
-
-  ipcMain.handle('pomodoro:getStats', (_event, date: number) => {
-    return db.getPomodoroStatsByDate(date);
-  });
-
-  ipcMain.handle('pomodoro:getTodayStats', () => {
-    const today = dayjs().startOf('day').valueOf();
-    return db.getPomodoroStatsByDate(today);
   });
 }

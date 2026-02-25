@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Layout, Button, Select, Card, Empty, Message, Modal } from '@arco-design/web-react';
+import { Layout, Button, Select, Card, Message, Modal } from '@arco-design/web-react';
 import {
   IconPlayCircle,
   IconSave,
@@ -7,22 +7,15 @@ import {
   IconFile,
   IconDownload,
   IconPlus,
-  IconCopy,
-  IconRefresh,
 } from '@arco-design/web-react/icon';
 import Editor from '@monaco-editor/react';
+import WorkspaceSidebar, { WorkspaceFileItem } from './components/WorkspaceSidebar';
+import RunOutputCard from './components/RunOutputCard';
 import './styles.css';
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 
 type CodeLanguage = 'java' | 'python';
-
-interface FileItem {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: FileItem[];
-}
 
 interface OpenedCodeFile {
   path: string;
@@ -100,7 +93,7 @@ function createDraft(language: CodeLanguage): DraftCodeFile {
 
 function CodeRunner() {
   const [openedFolder, setOpenedFolder] = useState<string | null>(null);
-  const [fileTree, setFileTree] = useState<FileItem[]>([]);
+  const [fileTree, setFileTree] = useState<WorkspaceFileItem[]>([]);
   const [openedFiles, setOpenedFiles] = useState<OpenedCodeFile[]>([]);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
@@ -111,6 +104,7 @@ function CodeRunner() {
   const [executionTime, setExecutionTime] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [editorFontSize, setEditorFontSize] = useState(14);
 
   const currentFile = useMemo(() => {
     if (!currentFilePath) return null;
@@ -147,7 +141,7 @@ function CodeRunner() {
     });
   }, [saveRecentFiles]);
 
-  const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<FileItem[]> => {
+  const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<WorkspaceFileItem[]> => {
     if (depth > 12) return [];
 
     const result = await window.electronAPI.fs.readFolder(folderPath, { extensions: CODE_EXTENSIONS });
@@ -235,9 +229,10 @@ function CodeRunner() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const [recentRaw, lastFolder] = await Promise.all([
+        const [recentRaw, lastFolder, fontSizeRaw] = await Promise.all([
           window.electronAPI.settings.get('codeRecentFiles'),
           window.electronAPI.settings.get('codeWorkspaceFolder'),
+          window.electronAPI.settings.get('fontSize'),
         ]);
 
         if (recentRaw) {
@@ -250,6 +245,13 @@ function CodeRunner() {
         if (lastFolder) {
           setOpenedFolder(lastFolder);
           await loadFolder(lastFolder);
+        }
+
+        if (fontSizeRaw) {
+          const parsed = Number(fontSizeRaw);
+          if (Number.isFinite(parsed) && parsed >= 10 && parsed <= 32) {
+            setEditorFontSize(parsed);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize code workspace:', error);
@@ -525,34 +527,6 @@ function CodeRunner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleManualSave, handleNewFile, handleOpenFile, handleRun, handleSaveAs]);
 
-  const renderFileTree = useCallback((items: FileItem[], depth = 0): React.ReactNode => {
-    return items.map((item) => {
-      if (item.isDirectory) {
-        return (
-          <div key={item.path}>
-            <div className="tree-item tree-folder" style={{ paddingLeft: 12 + depth * 14 }}>
-              <IconFolder />
-              <span>{item.name}</span>
-            </div>
-            {item.children && item.children.length > 0 ? renderFileTree(item.children, depth + 1) : null}
-          </div>
-        );
-      }
-
-      return (
-        <div
-          key={item.path}
-          className={`tree-item tree-file ${currentFilePath === item.path ? 'active' : ''}`}
-          style={{ paddingLeft: 12 + depth * 14 }}
-          onClick={() => void loadCodeFile(item.path)}
-        >
-          <IconFile />
-          <span>{item.name}</span>
-        </div>
-      );
-    });
-  }, [currentFilePath, loadCodeFile]);
-
   return (
     <div className="code-page">
       <div className="code-header">
@@ -574,47 +548,19 @@ function CodeRunner() {
       </div>
 
       <Layout className="code-layout">
-        <Sider width={300} className="code-sidebar">
-          <div className="sidebar-section">
-            <div className="sidebar-title-row">
-              <span className="sidebar-title">工作区</span>
-              <Button size="mini" type="text" icon={<IconRefresh />} onClick={() => openedFolder && void loadFolder(openedFolder)} />
-            </div>
-            <div className="workspace-path" title={openedFolder || ''}>
-              {openedFolder || '未打开目录'}
-            </div>
-          </div>
-
-          <div className="sidebar-section sidebar-tree">
-            {fileTree.length === 0 ? (
-              <Empty description="打开目录后显示 .java / .py 文件" />
-            ) : (
-              <div className="tree-list">{renderFileTree(fileTree)}</div>
-            )}
-          </div>
-
-          <div className="sidebar-section sidebar-recent">
-            <div className="sidebar-title-row">
-              <span className="sidebar-title">最近文件</span>
-            </div>
-            {recentFiles.length === 0 ? (
-              <div className="recent-empty">暂无</div>
-            ) : (
-              <div className="recent-list">
-                {recentFiles.map((filePath) => (
-                  <div
-                    className="recent-item"
-                    key={filePath}
-                    title={filePath}
-                    onClick={() => void handleOpenRecentFile(filePath)}
-                  >
-                    {getFileName(filePath)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Sider>
+        <WorkspaceSidebar
+          openedFolder={openedFolder}
+          fileTree={fileTree}
+          recentFiles={recentFiles}
+          currentFilePath={currentFilePath}
+          onRefresh={() => {
+            if (openedFolder) {
+              void loadFolder(openedFolder);
+            }
+          }}
+          onOpenFromTree={(filePath) => void loadCodeFile(filePath)}
+          onOpenRecentFile={(filePath) => void handleOpenRecentFile(filePath)}
+        />
 
         <Content className="code-content">
           <Card className="editor-card" bodyStyle={{ padding: 0, height: 'calc(100% - 120px)' }}>
@@ -661,7 +607,7 @@ function CodeRunner() {
               onChange={(value) => handleEditorChange(value || '')}
               options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: editorFontSize,
                 lineNumbers: 'on',
                 automaticLayout: true,
                 scrollBeyondLastLine: false,
@@ -681,21 +627,11 @@ function CodeRunner() {
             </div>
           </Card>
 
-          <Card
-            title={
-              <div className="output-header">
-                <span>运行输出</span>
-                {executionTime > 0 ? <span className="execution-time">{executionTime}ms</span> : null}
-              </div>
-            }
-            className="output-card"
-            extra={output ? <Button type="text" size="small" icon={<IconCopy />} onClick={copyOutput}>复制</Button> : null}
-            bodyStyle={{ padding: 0 }}
-          >
-            <div className={`output-content ${output ? '' : 'empty'}`}>
-              {output ? <pre>{output}</pre> : <Empty description="运行后输出会显示在这里" style={{ margin: 0 }} />}
-            </div>
-          </Card>
+          <RunOutputCard
+            output={output}
+            executionTime={executionTime}
+            onCopy={copyOutput}
+          />
         </Content>
       </Layout>
     </div>

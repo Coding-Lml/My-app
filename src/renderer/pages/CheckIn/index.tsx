@@ -76,9 +76,9 @@ function CheckIn() {
   const loadData = async () => {
     try {
       const [checkInsData, statsData, today] = await Promise.all([
-        (window as any).electronAPI.checkins.getAll(200),
-        (window as any).electronAPI.checkins.stats(),
-        (window as any).electronAPI.checkins.getByDate(dayjs().startOf('day').valueOf()),
+        window.electronAPI.checkins.getAll(200),
+        window.electronAPI.checkins.stats(),
+        window.electronAPI.checkins.getByDate(dayjs().startOf('day').valueOf()),
       ]);
 
       setCheckIns(checkInsData);
@@ -101,7 +101,7 @@ function CheckIn() {
 
   const loadSettings = async () => {
     try {
-      const goal = await (window as any).electronAPI.settings.get('dailyGoal');
+      const goal = await window.electronAPI.settings.get('dailyGoal');
       if (goal) {
         const parsed = parseInt(goal, 10);
         if (!Number.isNaN(parsed)) {
@@ -116,7 +116,7 @@ function CheckIn() {
   const handleStartStudy = async () => {
     try {
       const today = dayjs().startOf('day').valueOf();
-      const checkIn = await (window as any).electronAPI.checkins.start(today);
+      const checkIn = await window.electronAPI.checkins.start(today);
       const startTime = checkIn?.start_time ?? Date.now();
       setTodayCheckIn(checkIn);
       setIsStudying(true);
@@ -132,7 +132,7 @@ function CheckIn() {
   const handleEndStudy = async () => {
     const date = todayCheckIn?.date ?? dayjs().startOf('day').valueOf();
     try {
-      const checkIn = await (window as any).electronAPI.checkins.end(date, currentDuration);
+      const checkIn = await window.electronAPI.checkins.end(date, currentDuration);
       setTodayCheckIn(checkIn);
       setIsStudying(false);
       setStudyStartTime(null);
@@ -150,7 +150,7 @@ function CheckIn() {
     setDailyGoal(normalized);
 
     try {
-      await (window as any).electronAPI.settings.set('dailyGoal', String(normalized), 'study');
+      await window.electronAPI.settings.set('dailyGoal', String(normalized), 'study');
     } catch (error) {
       console.error('Failed to save daily goal:', error);
       Message.error('保存目标失败');
