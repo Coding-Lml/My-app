@@ -1,5 +1,8 @@
 .outline-panel {
-  width: 240px;
+  width: clamp(176px, 22vw, 240px);
+  min-width: 176px;
+  max-width: 32%;
+  flex: 0 0 clamp(176px, 22vw, 240px);
   height: 100%;
   background: var(--surface-soft, #f6f8fa);
   border-left: 1px solid var(--border-default, #e1e4e8);

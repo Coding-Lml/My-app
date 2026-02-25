@@ -394,6 +394,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
   });
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [sourceFallback, setSourceFallback] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -605,21 +606,40 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
     const currentMarkdown = editor.getMarkdown();
     if (currentMarkdown === value) {
       previousValueRef.current = value;
+      setSourceFallback(false);
       return;
     }
 
-    isApplyingExternalValueRef.current = true;
-    editor.commands.setContent(value || '', { contentType: 'markdown', emitUpdate: false });
-    previousValueRef.current = value;
+    try {
+      isApplyingExternalValueRef.current = true;
+      editor.commands.setContent(value || '', { contentType: 'markdown', emitUpdate: false });
+      previousValueRef.current = value;
+      setSourceFallback(false);
 
-    window.requestAnimationFrame(() => {
-      const headings = buildHeadings(editor);
-      syncHeadingDom(headings);
-      void refreshDisplayImages();
-      detectActiveHeading();
+      window.requestAnimationFrame(() => {
+        const headings = buildHeadings(editor);
+        syncHeadingDom(headings);
+        void refreshDisplayImages();
+        detectActiveHeading();
+        isApplyingExternalValueRef.current = false;
+      });
+    } catch (error) {
+      console.error('Failed to parse markdown content, fallback to source mode:', error);
       isApplyingExternalValueRef.current = false;
-    });
-  }, [buildHeadings, detectActiveHeading, editor, refreshDisplayImages, syncHeadingDom, value]);
+      setSourceFallback(true);
+      onHeadingsChange?.([]);
+      onActiveHeadingChange?.(null);
+    }
+  }, [
+    buildHeadings,
+    detectActiveHeading,
+    editor,
+    onActiveHeadingChange,
+    onHeadingsChange,
+    refreshDisplayImages,
+    syncHeadingDom,
+    value,
+  ]);
 
   const scrollToHeading = useCallback(
     (id: string) => {
@@ -1030,7 +1050,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
         scrollDetectRafRef.current = null;
       }
     };
-  }, [detectActiveHeading]);
+  }, [detectActiveHeading, sourceFallback]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -1090,7 +1110,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
         rafId = null;
       }
     };
-  }, [refreshDisplayImages]);
+  }, [refreshDisplayImages, sourceFallback]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -1190,7 +1210,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
       container.removeEventListener('dragover', handleDragOver);
       container.removeEventListener('keydown', handleTableDelete);
     };
-  }, [editor, insertImageFiles]);
+  }, [editor, insertImageFiles, sourceFallback]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1221,11 +1241,11 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
 
     container.addEventListener('click', handleImageClick);
     return () => container.removeEventListener('click', handleImageClick);
-  }, []);
+  }, [sourceFallback]);
 
   useEffect(() => {
     void refreshDisplayImages();
-  }, [currentFileDir, refreshDisplayImages]);
+  }, [currentFileDir, refreshDisplayImages, sourceFallback]);
 
   const editorClassName = useMemo(
     () => `milkdown-editor-wrapper ${focusMode ? 'focus-mode' : ''} ${
@@ -1237,9 +1257,27 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
   return (
     <>
       <div className={editorClassName} ref={wrapperRef}>
-        <div className="tiptap-editor-content" ref={scrollContainerRef}>
-          <EditorContent editor={editor} />
-        </div>
+        {sourceFallback ? (
+          <div className="tiptap-source-fallback-wrap">
+            <div className="tiptap-source-fallback-tip">
+              当前文档包含暂不支持的富文本语法，已切换为源码视图
+            </div>
+            <textarea
+              className="tiptap-source-fallback"
+              value={value}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                previousValueRef.current = nextValue;
+                onChange(nextValue);
+              }}
+              spellCheck={false}
+            />
+          </div>
+        ) : (
+          <div className="tiptap-editor-content" ref={scrollContainerRef}>
+            <EditorContent editor={editor} />
+          </div>
+        )}
       </div>
       <input
         ref={fileInputRef}

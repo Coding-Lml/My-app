@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
-import type { StudyPlanUpdatePayload } from '@shared/types/ipc';
-import { resolveStudyPlanDateRange, validateTargetHours } from '@shared/utils/studyPlan';
+import type { StudyPlanUpdatePayload } from '../../shared/types/ipc';
+import { resolveStudyPlanDateRange, validateTargetHours } from '../../shared/utils/studyPlan';
 
 const DB_VERSION = 3;
 

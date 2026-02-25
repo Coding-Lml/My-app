@@ -1,36 +1,102 @@
 .code-page {
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
 .code-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.code-heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.code-heading .page-title {
+  margin: 0;
+  line-height: 1.12;
+}
+
+.code-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .code-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
+}
+
+.code-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.code-actions-run {
+  display: flex;
   align-items: center;
   justify-content: flex-end;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.code-actions-run .arco-btn {
+  min-width: 112px;
+}
+
+.code-language-select {
+  width: 136px;
+}
+
+.app-shell:not(.is-collapsed) .code-page .code-header {
+  gap: 12px;
+}
+
+.app-shell:not(.is-collapsed) .code-page .code-actions {
+  flex: 1;
+  min-width: 0;
+  max-width: 780px;
+}
+
+.app-shell:not(.is-collapsed) .code-page .code-layout {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
 }
 
 .code-layout {
   flex: 1;
   min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+  gap: 16px;
 }
 
 .code-sidebar {
-  background: var(--surface-card);
-  border-radius: 12px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
 }
 
 .sidebar-section {
@@ -65,8 +131,8 @@
 
 .sidebar-tree {
   flex: 1;
+  min-height: 180px;
   overflow-y: auto;
-  min-height: 120px;
 }
 
 .tree-list {
@@ -105,7 +171,7 @@
 
 .sidebar-recent {
   min-height: 140px;
-  max-height: 200px;
+  max-height: 220px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -140,22 +206,35 @@
 }
 
 .code-content {
-  margin-left: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(360px, 1fr) minmax(180px, 230px);
+  gap: 16px;
 }
 
 .editor-card {
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-card .arco-card-body {
   flex: 1;
   min-height: 0;
-  border-radius: 12px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-monaco-wrap {
+  flex: 1;
+  min-height: 0;
 }
 
 .vscode-tabs {
-  min-height: 36px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   background: #1f2430;
@@ -169,8 +248,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  border-radius: 6px 6px 0 0;
+  padding: 7px 10px;
+  border-radius: 8px 8px 0 0;
   color: #b9c2d0;
   font-size: 13px;
   cursor: pointer;
@@ -182,7 +261,7 @@
 }
 
 .vscode-tabs .tab-title {
-  max-width: 200px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -199,7 +278,7 @@
 }
 
 .vscode-statusbar {
-  height: 28px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -218,8 +297,16 @@
 }
 
 .output-card {
-  height: 220px;
-  border-radius: 12px;
+  height: 100%;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.output-card .arco-card-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .output-header {
@@ -237,7 +324,7 @@
 }
 
 .output-content {
-  height: 170px;
+  height: 100%;
   padding: 14px;
   overflow-y: auto;
   background: var(--surface-soft-hover);
@@ -258,18 +345,70 @@
   word-break: break-word;
 }
 
-@media (max-width: 1200px) {
-  .code-layout {
+@media (max-width: 1380px) {
+  .app-shell:not(.is-collapsed) .code-page .code-header {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-shell:not(.is-collapsed) .code-page .code-actions {
+    max-width: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .code-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .code-actions {
+    justify-content: space-between;
+  }
+
+  .code-layout {
+    grid-template-columns: 1fr;
   }
 
   .code-sidebar {
-    width: 100% !important;
     max-height: 300px;
   }
 
   .code-content {
-    margin-left: 0;
-    margin-top: 12px;
+    grid-template-rows: minmax(320px, 1fr) minmax(170px, 220px);
+  }
+}
+
+@media (max-width: 768px) {
+  .code-page {
+    gap: 12px;
+  }
+
+  .code-actions {
+    padding: 8px 6px;
+    gap: 8px;
+  }
+
+  .code-actions-group {
+    width: 100%;
+  }
+
+  .code-language-select {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  .vscode-tabs .tab-title {
+    max-width: 130px;
+  }
+
+  .vscode-statusbar {
+    font-size: 11px;
+    padding: 0 8px;
+  }
+
+  .vscode-statusbar .status-left,
+  .vscode-statusbar .status-right {
+    gap: 8px;
   }
 }

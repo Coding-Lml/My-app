@@ -1,7 +1,5 @@
-import { Button, Empty, Layout } from '@arco-design/web-react';
+import { Button, Empty } from '@arco-design/web-react';
 import { IconFile, IconFolder, IconRefresh } from '@arco-design/web-react/icon';
-
-const { Sider } = Layout;
 
 export interface WorkspaceFileItem {
   name: string;
@@ -69,7 +67,7 @@ function WorkspaceSidebar({
   onOpenRecentFile,
 }: WorkspaceSidebarProps) {
   return (
-    <Sider width={300} className="code-sidebar">
+    <aside className="code-sidebar">
       <div className="sidebar-section">
         <div className="sidebar-title-row">
           <span className="sidebar-title">工作区</span>
@@ -109,7 +107,7 @@ function WorkspaceSidebar({
           </div>
         )}
       </div>
-    </Sider>
+    </aside>
   );
 }
 

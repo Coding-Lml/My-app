@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Layout, Button, Select, Card, Message, Modal } from '@arco-design/web-react';
+import { Button, Select, Card, Message, Modal } from '@arco-design/web-react';
 import {
   IconPlayCircle,
   IconSave,
@@ -12,8 +12,6 @@ import Editor from '@monaco-editor/react';
 import WorkspaceSidebar, { WorkspaceFileItem } from './components/WorkspaceSidebar';
 import RunOutputCard from './components/RunOutputCard';
 import './styles.css';
-
-const { Content } = Layout;
 
 type CodeLanguage = 'java' | 'python';
 
@@ -530,24 +528,31 @@ function CodeRunner() {
   return (
     <div className="code-page">
       <div className="code-header">
-        <h1 className="page-title">代码工作台</h1>
+        <div className="code-heading">
+          <h1 className="page-title">代码工作台</h1>
+          <span className="code-subtitle">稳定的双栏工作区，支持快速打开、编辑与运行代码</span>
+        </div>
         <div className="code-actions">
-          <Select value={language} onChange={handleLanguageChange} style={{ width: 120 }}>
-            <Select.Option value="java">Java ☕</Select.Option>
-            <Select.Option value="python">Python 🐍</Select.Option>
-          </Select>
-          <Button icon={<IconPlus />} onClick={handleNewFile}>新建</Button>
-          <Button icon={<IconFile />} onClick={() => void handleOpenFile()}>打开文件</Button>
-          <Button icon={<IconFolder />} onClick={() => void handleOpenFolder()}>打开目录</Button>
-          <Button icon={<IconSave />} onClick={() => void handleManualSave()}>保存</Button>
-          <Button icon={<IconDownload />} onClick={() => void handleSaveAs()}>另存为</Button>
-          <Button type="primary" icon={<IconPlayCircle />} onClick={() => void handleRun()} loading={isRunning}>
-            运行
-          </Button>
+          <div className="code-actions-group">
+            <Select value={language} onChange={handleLanguageChange} className="code-language-select">
+              <Select.Option value="java">Java ☕</Select.Option>
+              <Select.Option value="python">Python 🐍</Select.Option>
+            </Select>
+            <Button icon={<IconPlus />} onClick={handleNewFile}>新建</Button>
+            <Button icon={<IconFile />} onClick={() => void handleOpenFile()}>打开文件</Button>
+            <Button icon={<IconFolder />} onClick={() => void handleOpenFolder()}>打开目录</Button>
+            <Button icon={<IconSave />} onClick={() => void handleManualSave()}>保存</Button>
+            <Button icon={<IconDownload />} onClick={() => void handleSaveAs()}>另存为</Button>
+          </div>
+          <div className="code-actions-run">
+            <Button type="primary" icon={<IconPlayCircle />} onClick={() => void handleRun()} loading={isRunning}>
+              运行
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Layout className="code-layout">
+      <div className="code-layout">
         <WorkspaceSidebar
           openedFolder={openedFolder}
           fileTree={fileTree}
@@ -562,8 +567,11 @@ function CodeRunner() {
           onOpenRecentFile={(filePath) => void handleOpenRecentFile(filePath)}
         />
 
-        <Content className="code-content">
-          <Card className="editor-card" bodyStyle={{ padding: 0, height: 'calc(100% - 120px)' }}>
+        <section className="code-content">
+          <Card
+            className="editor-card"
+            bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+          >
             <div className="vscode-tabs">
               <div
                 className={`tab ${!currentFilePath ? 'active' : ''}`}
@@ -599,20 +607,22 @@ function CodeRunner() {
               ))}
             </div>
 
-            <Editor
-              height="100%"
-              language={language}
-              theme="vs-dark"
-              value={editorContent}
-              onChange={(value) => handleEditorChange(value || '')}
-              options={{
-                minimap: { enabled: false },
-                fontSize: editorFontSize,
-                lineNumbers: 'on',
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-              }}
-            />
+            <div className="editor-monaco-wrap">
+              <Editor
+                height="100%"
+                language={language}
+                theme="vs-dark"
+                value={editorContent}
+                onChange={(value) => handleEditorChange(value || '')}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: editorFontSize,
+                  lineNumbers: 'on',
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </div>
 
             <div className="vscode-statusbar">
               <div className="status-left">
@@ -632,8 +642,8 @@ function CodeRunner() {
             executionTime={executionTime}
             onCopy={copyOutput}
           />
-        </Content>
-      </Layout>
+        </section>
+      </div>
     </div>
   );
 }

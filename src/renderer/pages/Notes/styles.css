@@ -49,6 +49,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .header-right .arco-btn {
@@ -62,10 +64,17 @@
   background: var(--surface-soft-hover);
 }
 
+.header-action-label {
+  margin-left: 2px;
+}
+
 /* Main Layout */
 .notes-layout {
   flex: 1;
-  height: calc(100% - 48px);
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
   overflow: hidden;
   background: var(--surface-canvas);
 }
@@ -78,12 +87,18 @@
 
 /* Sidebar */
 .notes-sider {
+  flex: 0 0 auto;
   height: 100%;
   background: var(--surface-card);
   border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+}
+
+.app-shell:not(.is-collapsed) .notes-page .notes-sider {
+  width: 248px !important;
+  flex: 0 0 248px !important;
 }
 
 .notes-sider .arco-tabs-nav {
@@ -234,6 +249,8 @@
 /* Content Area */
 .notes-content {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface-canvas);
@@ -317,6 +334,9 @@
 .notes-toolbar-right {
   display: flex;
   align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .notes-save-status {
@@ -380,6 +400,7 @@
 /* Editor Container */
 .notes-editor-container {
   flex: 1;
+  min-width: 0;
   display: flex;
   overflow: hidden;
   position: relative;
@@ -388,6 +409,7 @@
 
 .notes-editor-main {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -401,6 +423,14 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+.notes-empty-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state p {
@@ -478,8 +508,32 @@
     padding: 4px 6px;
   }
 
+  .header-action-label {
+    display: none;
+  }
+
   .notes-toolbar {
     padding: 8px 12px;
+  }
+}
+
+@media (max-width: 1320px) {
+  .app-shell:not(.is-collapsed) .notes-page .file-path {
+    max-width: 220px;
+  }
+
+  .app-shell:not(.is-collapsed) .notes-page .notes-find-row {
+    flex-wrap: wrap;
+  }
+
+  .app-shell:not(.is-collapsed) .notes-page .notes-find-count {
+    min-width: 64px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .notes-editor-container .outline-panel {
+    display: none;
   }
 }
 

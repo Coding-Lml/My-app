@@ -35,7 +35,7 @@ function NotesSidebar({
   onOpenRecentFile,
 }: NotesSidebarProps) {
   return (
-    <Sider width={280} className="notes-sider" collapsed={!showSidebar} collapsedWidth={0}>
+    <Sider width={260} className="notes-sider" collapsed={!showSidebar} collapsedWidth={0}>
       <Tabs defaultActiveTab="files" type="line">
         <TabPane key="files" title="文件树">
           <div className="notes-search">

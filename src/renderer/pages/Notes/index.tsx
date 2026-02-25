@@ -13,14 +13,10 @@ import {
 } from '@arco-design/web-react';
 import {
   IconPlus,
-  IconDelete,
   IconSearch,
   IconSave,
-  IconEye,
-  IconEyeInvisible,
   IconFolder,
   IconFile,
-  IconCode,
   IconDownload,
   IconMore,
   IconMenu,
@@ -93,7 +89,6 @@ function Notes() {
   const [focusMode, setFocusMode] = useState(false);
   const [typewriterMode, setTypewriterMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
@@ -418,7 +413,6 @@ function Notes() {
         });
         setCurrentFilePath(filePath);
         setEditingContent(fileContent);
-        setLastSavedAt(Date.now());
         await loadFolder(dir);
       }
     } catch (error) {
@@ -473,7 +467,6 @@ function Notes() {
       const result = await window.electronAPI.fs.writeFile(filePath, content);
       if (result.success) {
         setOpenedFiles((prev) => prev.map((f) => (f.path === filePath ? { ...f, isModified: false } : f)));
-        setLastSavedAt(Date.now());
         if (!silent) {
           Message.success('已保存');
         }
@@ -617,34 +610,10 @@ function Notes() {
     }
   }, [closeFileTab, openedFiles, saveFile]);
 
-  const formatSaveStatus = () => {
-    if (isSaving) return '保存中...';
-    if (currentFilePath) {
-      const file = openedFiles.find((f) => f.path === currentFilePath);
-      if (file?.isModified) return '未保存';
-    }
-    if (lastSavedAt) {
-      const seconds = Math.floor((Date.now() - lastSavedAt) / 1000);
-      if (seconds < 60) return '刚刚已保存';
-      if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟前已保存`;
-    }
-    return '';
-  };
-
   const getCurrentFileName = () => {
     if (!currentFilePath) return '未打开文件';
     return currentFilePath.split(/[\\/]/).pop();
   };
-
-  const currentFile = currentFilePath ? openedFiles.find((file) => file.path === currentFilePath) || null : null;
-
-  const wordCount = useMemo(() => {
-    const trimmed = editingContent.trim();
-    if (!trimmed) return 0;
-    return trimmed.split(/\s+/).length;
-  }, [editingContent]);
-
-  const charCount = editingContent.length;
 
   const handleImagePathModeChange = (mode: ImagePathMode) => {
     setImagePathMode(mode);
@@ -712,7 +681,7 @@ function Notes() {
       Message.warning('当前光标不在表格中');
     }
   }, [currentFilePath]);
-  const { settingsMenu, codeBlockMenu } = useNotesMenus({
+  const { settingsMenu } = useNotesMenus({
     showSidebar,
     setShowSidebar,
     showOutline,
@@ -910,6 +879,20 @@ function Notes() {
     }
   };
 
+  const exportMenu = useMemo(
+    () => (
+      <Menu>
+        <Menu.Item key="saveAs" onClick={() => void handleSaveAs()}>
+          另存为 (Shift+Cmd+S)
+        </Menu.Item>
+        <Menu.Item key="exportPdf" onClick={() => void handleExportPDF()} disabled={!editingContent}>
+          导出 PDF
+        </Menu.Item>
+      </Menu>
+    ),
+    [editingContent, handleExportPDF, handleSaveAs]
+  );
+
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
@@ -1072,30 +1055,35 @@ function Notes() {
 
         <div className="header-right">
           <Tooltip content="打开文件 (Cmd+O)">
-            <Button icon={<IconArchive />} onClick={handleOpenFile} />
+            <Button icon={<IconArchive />} onClick={handleOpenFile}>
+              <span className="header-action-label">打开</span>
+            </Button>
           </Tooltip>
           <Tooltip content="打开文件夹">
-            <Button icon={<IconFolder />} onClick={handleOpenFolder} />
+            <Button icon={<IconFolder />} onClick={handleOpenFolder}>
+              <span className="header-action-label">文件夹</span>
+            </Button>
           </Tooltip>
           <Tooltip content="新建文件 (Cmd+N)">
-            <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)} />
+            <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)}>
+              <span className="header-action-label">新建</span>
+            </Button>
           </Tooltip>
           <Tooltip content="保存 (Cmd+S)">
-            <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving} />
+            <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving}>
+              <span className="header-action-label">保存</span>
+            </Button>
+          </Tooltip>
+          <Tooltip content="查找 (Cmd+F)">
+            <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
           </Tooltip>
           <Tooltip content="插入图片 (Shift+Cmd+I)">
             <Button icon={<IconImage />} onClick={handleInsertImage} disabled={!currentFilePath} />
           </Tooltip>
-          <Tooltip content="另存为 (Shift+Cmd+S)">
-            <Button icon={<IconDownload />} onClick={handleSaveAs} />
-          </Tooltip>
-          <Tooltip content="导出 PDF">
-            <Button icon={<IconDownload />} onClick={handleExportPDF} />
-          </Tooltip>
+          <Dropdown droplist={exportMenu} position="bottom">
+            <Button icon={<IconDownload />}>导出</Button>
+          </Dropdown>
           <Divider type="vertical" />
-          <Tooltip content="专注模式">
-            <Button icon={focusMode ? <IconEye /> : <IconEyeInvisible />} onClick={() => setFocusMode(!focusMode)} />
-          </Tooltip>
           <Tooltip content="侧边栏 (Cmd+B)">
             <Button icon={<IconMenu />} onClick={() => setShowSidebar(!showSidebar)} />
           </Tooltip>
@@ -1127,47 +1115,6 @@ function Notes() {
                 onSelect={(path) => void handleFileSelect(path)}
                 onClose={handleCloseFile}
               />
-
-              <div className="notes-toolbar">
-                <div className="notes-toolbar-left">
-                  <span className="notes-save-status">{formatSaveStatus()}</span>
-                  <span className="notes-stat">{wordCount} words</span>
-                  <span className="notes-stat">{charCount} chars</span>
-                </div>
-                <div className="notes-toolbar-right">
-                  <Tooltip content="插入表格 (Cmd+Alt+T)">
-                    <Button onClick={handleInsertTable} disabled={!currentFilePath}>
-                      表格
-                    </Button>
-                  </Tooltip>
-                  <Dropdown droplist={codeBlockMenu} position="bl" trigger="click">
-                    <Tooltip content="插入代码块 (Cmd+Alt+K)">
-                      <Button icon={<IconCode />} disabled={!currentFilePath}>
-                        代码块
-                      </Button>
-                    </Tooltip>
-                  </Dropdown>
-                  <Tooltip content="删除当前表格 (Cmd+Alt+⌫)">
-                    <Button onClick={handleDeleteCurrentTable} disabled={!currentFilePath}>
-                      删表
-                    </Button>
-                  </Tooltip>
-                  <Tooltip content="查找 (Cmd+F)">
-                    <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
-                  </Tooltip>
-                  <Tooltip content="关闭当前文件 (Cmd+W)">
-                    <Button onClick={() => currentFilePath && handleCloseFile(currentFilePath)} disabled={!currentFilePath}>
-                      关闭
-                    </Button>
-                  </Tooltip>
-                  <Button
-                    status="danger"
-                    icon={<IconDelete />}
-                    onClick={() => currentFile && void handleDeleteFile(currentFile.path)}
-                    disabled={!currentFile}
-                  />
-                </div>
-              </div>
 
               {showFindBar && (
                 <FindReplacePanel
@@ -1221,23 +1168,25 @@ function Notes() {
               </div>
             </>
           ) : (
-            <Empty
-              description={
-                <div className="empty-state">
-                  <IconFile style={{ fontSize: 64, marginBottom: 16 }} />
-                  <p>打开 Markdown 文件开始编辑</p>
-                  <div className="empty-actions">
-                    <Button type="primary" icon={<IconArchive />} onClick={handleOpenFile}>
-                      打开文件
-                    </Button>
-                    <Button icon={<IconFolder />} onClick={handleOpenFolder}>
-                      打开文件夹
-                    </Button>
+            <div className="notes-empty-wrapper">
+              <Empty
+                description={
+                  <div className="empty-state">
+                    <IconFile style={{ fontSize: 64, marginBottom: 16 }} />
+                    <p>打开 Markdown 文件开始编辑</p>
+                    <div className="empty-actions">
+                      <Button type="primary" icon={<IconArchive />} onClick={handleOpenFile}>
+                        打开文件
+                      </Button>
+                      <Button icon={<IconFolder />} onClick={handleOpenFolder}>
+                        打开文件夹
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              }
-              style={{ marginTop: 100 }}
-            />
+                }
+                style={{ marginTop: 0 }}
+              />
+            </div>
           )}
         </Content>
       </Layout>
