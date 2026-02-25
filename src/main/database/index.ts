@@ -77,9 +77,21 @@ interface StudyProgress {
   updated_at: number;
 }
 
+interface Setting {
+  id: number;
+  key: string;
+  value: string;
+  category: string | null;
+  updated_at: number;
+}
+
 export class Database {
   private db: SQLDatabase | null = null;
   private dbPath: string;
+  private saveTimer: NodeJS.Timeout | null = null;
+  private isPersisting = false;
+  private pendingPersist = false;
+  private readonly saveDebounceMs = 300;
 
   constructor() {
     const userDataPath = app.getPath('userData');
@@ -122,14 +134,21 @@ export class Database {
   private checkAndMigrate(): void {
     if (!this.db) return;
 
-    const result = this.db.exec('SELECT value FROM settings WHERE key = "db_version"');
-    const currentVersion = result.length > 0 && result[0].values.length > 0
-      ? Number(result[0].values[0][0])
-      : 0;
+    let currentVersion = 0;
+    try {
+      const result = this.db.exec('SELECT value FROM settings WHERE key = "db_version"');
+      currentVersion = result.length > 0 && result[0].values.length > 0
+        ? Number(result[0].values[0][0])
+        : 0;
+    } catch {
+      this.createTables();
+      currentVersion = 0;
+    }
 
     if (currentVersion < DB_VERSION) {
       this.runMigration(currentVersion);
       this.updateDBVersion();
+      this.save();
     }
   }
 
@@ -411,6 +430,46 @@ export class Database {
 
   private save(): void {
     if (!this.db) return;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+    }
+
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.persistAsync();
+    }, this.saveDebounceMs);
+  }
+
+  private async persistAsync(): Promise<void> {
+    if (!this.db) return;
+
+    if (this.isPersisting) {
+      this.pendingPersist = true;
+      return;
+    }
+
+    this.isPersisting = true;
+    try {
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      await fs.promises.writeFile(this.dbPath, buffer);
+    } catch (error) {
+      console.error('Failed to persist database:', error);
+    } finally {
+      this.isPersisting = false;
+      if (this.pendingPersist) {
+        this.pendingPersist = false;
+        void this.persistAsync();
+      }
+    }
+  }
+
+  private flushSaveSync(): void {
+    if (!this.db) return;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
     const data = this.db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(this.dbPath, buffer);
@@ -761,6 +820,12 @@ export class Database {
     this.save();
   }
 
+  getAllSettings(): Setting[] {
+    if (!this.db) return [];
+    const result = this.db.exec('SELECT * FROM settings ORDER BY key ASC');
+    return this.parseResults<Setting>(result);
+  }
+
   // Pomodoro operations
   getPomodoroSessions(limit: number = 100): any[] {
     if (!this.db) return [];
@@ -867,9 +932,30 @@ export class Database {
 
     if (updates.title !== undefined) setClauses.push(`title = ${this.escape(updates.title)}`);
     if (updates.description !== undefined) setClauses.push(`description = ${updates.description ? this.escape(updates.description) : 'NULL'}`);
+    if (updates.skill_id !== undefined) setClauses.push(`skill_id = ${updates.skill_id ?? 'NULL'}`);
+    if (updates.skill_name !== undefined) setClauses.push(`skill_name = ${updates.skill_name ? this.escape(updates.skill_name) : 'NULL'}`);
+    if (updates.start_date !== undefined) setClauses.push(`start_date = ${updates.start_date}`);
+    if (updates.end_date !== undefined) setClauses.push(`end_date = ${updates.end_date}`);
+    if (updates.target_hours !== undefined) setClauses.push(`target_hours = ${updates.target_hours}`);
     if (updates.completed_hours !== undefined) setClauses.push(`completed_hours = ${updates.completed_hours}`);
     if (updates.status !== undefined) setClauses.push(`status = ${updates.status}`);
     if (updates.priority !== undefined) setClauses.push(`priority = ${updates.priority}`);
+
+    if (updates.start_date !== undefined || updates.end_date !== undefined) {
+      const current = this.getStudyPlanById(id);
+      if (!current) {
+        throw new Error('Study plan not found');
+      }
+      const start = updates.start_date ?? current.start_date;
+      const end = updates.end_date ?? current.end_date;
+      if (end < start) {
+        throw new Error('结束日期不能早于开始日期');
+      }
+    }
+
+    if (updates.target_hours !== undefined && Number(updates.target_hours) < 1) {
+      throw new Error('目标学习时长必须大于等于 1 小时');
+    }
 
     setClauses.push(`updated_at = ${now}`);
 
@@ -935,7 +1021,7 @@ export class Database {
 
   close(): void {
     if (this.db) {
-      this.save();
+      this.flushSaveSync();
       this.db.close();
       this.db = null;
     }

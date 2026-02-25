@@ -1,18 +1,31 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  ElectronAPI,
+  FileDialogFilter,
+  FsOpenFileOptions,
+  FsReadFolderOptions,
+  FsSaveFileDialogOptions,
+  Milestone,
+  PomodoroSession,
+  StudyPlan,
+  StudyPlanUpdatePayload,
+  StudyProgress,
+  Todo,
+} from '@shared/types/ipc';
 
-const api = {
+const api: ElectronAPI = {
   // Todos
   todos: {
     getAll: () => ipcRenderer.invoke('todos:getAll'),
-    create: (todo: any) => ipcRenderer.invoke('todos:create', todo),
-    update: (id: number, todo: any) => ipcRenderer.invoke('todos:update', id, todo),
+    create: (todo: Partial<Todo>) => ipcRenderer.invoke('todos:create', todo),
+    update: (id: number, todo: Partial<Todo>) => ipcRenderer.invoke('todos:update', id, todo),
     delete: (id: number) => ipcRenderer.invoke('todos:delete', id),
   },
 
   // Check-ins
   checkins: {
     getAll: (limit?: number) => ipcRenderer.invoke('checkins:getAll', limit),
-    save: (date: number, data: any) => ipcRenderer.invoke('checkins:save', date, data),
+    save: (date: number, data) => ipcRenderer.invoke('checkins:save', date, data),
     getByDate: (date: number) => ipcRenderer.invoke('checkins:getByDate', date),
     start: (date: number) => ipcRenderer.invoke('checkins:start', date),
     end: (date: number, duration: number) => ipcRenderer.invoke('checkins:end', date, duration),
@@ -22,8 +35,8 @@ const api = {
   // Pomodoro
   pomodoro: {
     getAll: (limit?: number) => ipcRenderer.invoke('pomodoro:getAll', limit),
-    save: (session: any) => ipcRenderer.invoke('pomodoro:save', session),
-    update: (id: number, updates: any) => ipcRenderer.invoke('pomodoro:update', id, updates),
+    save: (session: Partial<PomodoroSession>) => ipcRenderer.invoke('pomodoro:save', session),
+    update: (id: number, updates: Partial<PomodoroSession>) => ipcRenderer.invoke('pomodoro:update', id, updates),
     getStats: (date: number) => ipcRenderer.invoke('pomodoro:getStats', date),
     getTodayStats: () => ipcRenderer.invoke('pomodoro:getTodayStats'),
   },
@@ -31,8 +44,8 @@ const api = {
   // Code Snippets
   snippets: {
     getAll: () => ipcRenderer.invoke('snippets:getAll'),
-    create: (snippet: any) => ipcRenderer.invoke('snippets:create', snippet),
-    update: (id: number, snippet: any) => ipcRenderer.invoke('snippets:update', id, snippet),
+    create: snippet => ipcRenderer.invoke('snippets:create', snippet),
+    update: (id: number, snippet) => ipcRenderer.invoke('snippets:update', id, snippet),
     delete: (id: number) => ipcRenderer.invoke('snippets:delete', id),
     incrementUsage: (id: number) => ipcRenderer.invoke('snippets:incrementUsage', id),
   },
@@ -48,10 +61,10 @@ const api = {
   // Progress
   progress: {
     getAll: () => ipcRenderer.invoke('progress:getAll'),
-    update: (skillName: string, updates: any) => ipcRenderer.invoke('progress:update', skillName, updates),
+    update: (skillName: string, updates: Partial<StudyProgress>) => ipcRenderer.invoke('progress:update', skillName, updates),
     create: (payload: { skill_name: string; category?: string; parent_skill_id?: number | null; order_index?: number; target_level?: number }) =>
       ipcRenderer.invoke('progress:create', payload),
-    updateById: (id: number, updates: any) =>
+    updateById: (id: number, updates: Partial<StudyProgress>) =>
       ipcRenderer.invoke('progress:updateById', id, updates),
     delete: (id: number) =>
       ipcRenderer.invoke('progress:delete', id),
@@ -74,16 +87,16 @@ const api = {
   plans: {
     getAll: () => ipcRenderer.invoke('plans:getAll'),
     getById: (id: number) => ipcRenderer.invoke('plans:getById', id),
-    create: (plan: any) => ipcRenderer.invoke('plans:create', plan),
-    update: (id: number, updates: any) => ipcRenderer.invoke('plans:update', id, updates),
+    create: (plan: Partial<StudyPlan>) => ipcRenderer.invoke('plans:create', plan),
+    update: (id: number, updates: StudyPlanUpdatePayload) => ipcRenderer.invoke('plans:update', id, updates),
     delete: (id: number) => ipcRenderer.invoke('plans:delete', id),
   },
 
   // Milestones
   milestones: {
     getByPlanId: (planId: number) => ipcRenderer.invoke('milestones:getByPlanId', planId),
-    create: (milestone: any) => ipcRenderer.invoke('milestones:create', milestone),
-    update: (id: number, updates: any) => ipcRenderer.invoke('milestones:update', id, updates),
+    create: (milestone: Partial<Milestone>) => ipcRenderer.invoke('milestones:create', milestone),
+    update: (id: number, updates: Partial<Milestone>) => ipcRenderer.invoke('milestones:update', id, updates),
     delete: (id: number) => ipcRenderer.invoke('milestones:delete', id),
   },
 
@@ -107,29 +120,31 @@ const api = {
 
   // File save dialog
   file: {
-    save: (content: string, defaultPath?: string, filters?: any[]) => ipcRenderer.invoke('file:save', content, defaultPath, filters),
+    save: (content: string, defaultPath?: string, filters?: FileDialogFilter[]) =>
+      ipcRenderer.invoke('file:save', content, defaultPath, filters),
   },
 
   // File system - open folder like Typora
   fs: {
     openFolder: () => ipcRenderer.invoke('fs:openFolder'),
-    openFile: (options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+    openFile: (options?: FsOpenFileOptions) =>
       ipcRenderer.invoke('fs:openFile', options),
     saveFileDialog: (
       content: string,
       defaultName?: string,
-      options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }
+      options?: FsSaveFileDialogOptions
     ) => ipcRenderer.invoke('fs:saveFileDialog', content, defaultName, options),
-    readFolder: (folderPath: string, options?: { extensions?: string[] }) => ipcRenderer.invoke('fs:readFolder', folderPath, options),
+    readFolder: (folderPath: string, options?: FsReadFolderOptions) => ipcRenderer.invoke('fs:readFolder', folderPath, options),
     readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createFile: (folderPath: string, fileName: string) => ipcRenderer.invoke('fs:createFile', folderPath, fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('fs:deleteFile', filePath),
     renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:renameFile', oldPath, newPath),
-    watchFolder: (folderPath: string, options?: { extensions?: string[] }) =>
+    watchFolder: (folderPath: string, options?: FsReadFolderOptions) =>
       ipcRenderer.invoke('fs:watchFolder', folderPath, options),
     unwatchFolder: (folderPath: string) => ipcRenderer.invoke('fs:unwatchFolder', folderPath),
-    onFolderChange: (callback: (event: any, data: any) => void) => ipcRenderer.on('fs:folderChange', callback),
+    onFolderChange: (callback: (event: Event, data: { eventType: string; filename: string; folderPath: string }) => void) =>
+      ipcRenderer.on('fs:folderChange', callback),
     removeFolderChangeListener: () => ipcRenderer.removeAllListeners('fs:folderChange'),
     reveal: (filePath: string) => ipcRenderer.invoke('fs:reveal', filePath),
     getFileStats: (filePath: string) => ipcRenderer.invoke('fs:getFileStats', filePath),
