@@ -1,0 +1,175 @@
+.todos-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.todos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.todos-layout {
+  flex: 1;
+  height: calc(100% - 60px);
+}
+
+.todos-sidebar {
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-card {
+  border-radius: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.stat-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-value.pending {
+  color: var(--warn-strong);
+}
+
+.stat-value.completed {
+  color: var(--success-strong);
+}
+
+.filter-card {
+  border-radius: 8px;
+}
+
+.todos-content {
+  margin-left: 16px;
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.todos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.todo-item {
+  background: var(--surface-canvas);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.todo-item:hover {
+  background: var(--surface-soft);
+}
+
+.todo-item.completed {
+  opacity: 0.6;
+}
+
+.todo-item.overdue {
+  border-left: 3px solid var(--danger-strong);
+}
+
+.todo-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.todo-item-main {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.todo-checkbox {
+  font-size: 24px;
+  color: var(--border-strong);
+  padding: 0;
+}
+
+.todo-checkbox.checked {
+  color: var(--success-strong);
+}
+
+.todo-info {
+  flex: 1;
+}
+
+.todo-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.todo-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.todo-item.completed .todo-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.todo-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.todo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-item label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-item {
+  flex: 1;
+}

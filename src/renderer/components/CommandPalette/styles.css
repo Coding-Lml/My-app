@@ -1,0 +1,99 @@
+.command-palette-modal {
+  top: 80px;
+}
+
+.command-palette-modal .arco-modal {
+  width: 560px;
+  max-width: calc(100vw - 28px);
+}
+
+.command-palette-modal .arco-modal-body {
+  padding: 0;
+}
+
+.command-palette {
+  padding: 14px;
+}
+
+.command-input {
+  margin-bottom: 8px;
+}
+
+.command-input .arco-input {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+.command-meta {
+  color: var(--text-faint);
+  font-size: 12px;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.command-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.command-group {
+  margin-bottom: 12px;
+}
+
+.command-group-title {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+  padding: 0 8px;
+}
+
+.command-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--motion-fast), transform var(--motion-fast);
+}
+
+.command-item:hover,
+.command-item.selected {
+  background: var(--surface-soft);
+}
+
+.command-item.selected {
+  background: var(--accent-soft);
+}
+
+.command-icon {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.command-item.selected .command-icon {
+  color: var(--accent-strong);
+}
+
+.command-label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.command-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 28px 0;
+}
+
+.command-hints {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-faint);
+}

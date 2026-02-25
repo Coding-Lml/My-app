@@ -1,0 +1,255 @@
+.checkin-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkin-page .page-title {
+  margin-bottom: 0;
+}
+
+.checkin-primary-card,
+.checkin-stats-card,
+.heatmap-card {
+  border-radius: 12px;
+}
+
+.checkin-primary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.today-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.status-badge.done {
+  background: var(--success-soft);
+  color: var(--success-strong);
+}
+
+.status-badge.idle {
+  background: var(--surface-soft-hover);
+  color: var(--text-secondary);
+}
+
+.timer-display {
+  margin-top: 20px;
+  font-size: 56px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent-strong);
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.timer-hint {
+  margin-top: 6px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.checkin-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.goal-section {
+  margin-top: 22px;
+  border-top: 1px solid var(--border-default);
+  padding-top: 18px;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.goal-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.goal-achieved {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--success-strong);
+  text-align: center;
+  font-weight: 500;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpi-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.kpi-icon.fire {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.kpi-icon.calendar {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.kpi-icon.clock {
+  background: var(--warn-soft);
+  color: var(--warn-strong);
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kpi-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.heatmap-grid-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heatmap-weekdays {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 1px;
+}
+
+.heatmap-weekday {
+  width: 18px;
+  height: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 12px;
+}
+
+.heatmap-weeks {
+  display: flex;
+  gap: 4px;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transition: transform 0.1s ease;
+}
+
+.heatmap-day:hover {
+  transform: scale(1.25);
+}
+
+.heatmap-day.today {
+  box-shadow: 0 0 0 2px var(--accent-strong);
+}
+
+.heatmap-day.future {
+  opacity: 0.35;
+}
+
+.heatmap-legend {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.heatmap-legend-item {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-display {
+    font-size: 46px;
+  }
+}
+
+@media (max-width: 600px) {
+  .checkin-primary-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .goal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .timer-display {
+    font-size: 38px;
+  }
+}

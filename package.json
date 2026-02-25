@@ -1,0 +1,129 @@
+{
+  "name": "learning-app",
+  "version": "1.0.0",
+  "description": "A desktop learning app for Java backend engineers",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"tsc -p tsconfig.main.json --watch\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && tsc -p tsconfig.main.json && electron-builder",
+    "build:dir": "vite build && tsc -p tsconfig.main.json && electron-builder --dir",
+    "build:win": "vite build && tsc -p tsconfig.main.json && electron-builder --win",
+    "build:mac": "vite build && tsc -p tsconfig.main.json && electron-builder --mac",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@arco-design/web-react": "^2.66.10",
+    "@monaco-editor/react": "^4.7.0",
+    "@tiptap/extension-code-block-lowlight": "^3.20.0",
+    "@tiptap/extension-image": "^3.20.0",
+    "@tiptap/extension-placeholder": "^3.20.0",
+    "@tiptap/extension-table": "^3.20.0",
+    "@tiptap/extension-table-cell": "^3.20.0",
+    "@tiptap/extension-table-header": "^3.20.0",
+    "@tiptap/extension-table-row": "^3.20.0",
+    "@tiptap/markdown": "^3.20.0",
+    "@tiptap/pm": "^3.20.0",
+    "@tiptap/react": "^3.20.0",
+    "@tiptap/starter-kit": "^3.20.0",
+    "dayjs": "^1.11.19",
+    "electron-store": "^8.2.0",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.32",
+    "lodash": "^4.17.23",
+    "lowlight": "^3.3.0",
+    "marked": "^17.0.3",
+    "mermaid": "^11.12.3",
+    "nanoid": "^5.1.6",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.1.0",
+    "react-router-dom": "^6.30.3",
+    "react-syntax-highlighter": "^15.6.6",
+    "recharts": "^2.15.4",
+    "remark-gfm": "^4.0.1",
+    "sql.js": "^1.14.0",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/lodash": "^4.17.23",
+    "@types/node": "^20.19.33",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.1",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^1.6.1",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.learning.app",
+    "productName": "Learning App",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Learning App"
+    }
+  }
+}

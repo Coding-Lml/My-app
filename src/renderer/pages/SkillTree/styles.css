@@ -1,0 +1,266 @@
+.skill-tree-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.skill-tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.overall-progress {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.progress-text {
+  margin-left: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.skill-tree-content {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.tree-card {
+  flex: 1;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.skill-tree {
+  padding: 8px 0;
+}
+
+.skill-node {
+  margin-bottom: 4px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skill-item:hover {
+  background: var(--surface-soft-hover);
+}
+
+.skill-item.selected {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent-strong);
+}
+
+.skill-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expand-icon {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  cursor: pointer;
+  width: 16px;
+  text-align: center;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.expand-placeholder {
+  width: 16px;
+}
+
+.skill-name {
+  font-weight: 500;
+}
+
+.skill-progress-mini {
+  display: flex;
+  align-items: center;
+}
+
+.skill-children {
+  border-left: 1px dashed var(--border-default);
+  margin-left: 20px;
+  padding-left: 4px;
+}
+
+.detail-card {
+  width: 360px;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.detail-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-icon {
+  font-size: 24px;
+}
+
+.detail-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.detail-progress {
+  margin-bottom: 24px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.progress-value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-stats .stat-item {
+  text-align: center;
+  padding: 12px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+}
+
+.stat-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.stat-info .stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-info .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.detail-actions {
+  margin-bottom: 24px;
+}
+
+.sub-skills h4 {
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+
+.sub-skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sub-skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sub-skill-item:hover {
+  background: var(--surface-soft-hover);
+}
+
+.sub-skill-name {
+  font-size: 13px;
+}
+
+.edit-form {
+  padding: 8px 0;
+}
+
+.edit-form .form-item {
+  margin-bottom: 16px;
+}
+
+.edit-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.skill-name-display {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.level-hints {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.beginner {
+  background: var(--accent-strong);
+}
+
+.dot.intermediate {
+  background: var(--warn-strong);
+}
+
+.dot.advanced {
+  background: var(--success-strong);
+}

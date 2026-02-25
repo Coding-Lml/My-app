@@ -1,0 +1,1461 @@
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import {
+  Layout,
+  List,
+  Button,
+  Input,
+  Modal,
+  Tree,
+  Empty,
+  Switch,
+  Tooltip,
+  Dropdown,
+  Menu,
+  Message,
+  Tabs,
+  Divider,
+} from '@arco-design/web-react';
+import {
+  IconPlus,
+  IconDelete,
+  IconSearch,
+  IconSave,
+  IconEye,
+  IconEyeInvisible,
+  IconFolder,
+  IconFile,
+  IconCode,
+  IconDownload,
+  IconMore,
+  IconRefresh,
+  IconMenu,
+  IconArchive,
+  IconImage,
+} from '@arco-design/web-react/icon';
+import MilkdownEditor, {
+  HeadingItem,
+  MilkdownEditorHandle,
+  SearchOptions,
+  SearchState,
+} from '../../components/MilkdownEditor';
+import Outline from '../../components/Outline';
+import './styles.css';
+
+const { Sider, Content } = Layout;
+const TabPane = Tabs.TabPane;
+
+interface FileItem {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  children?: FileItem[];
+}
+
+interface OpenedFile {
+  path: string;
+  name: string;
+  content: string;
+  isModified: boolean;
+}
+
+interface TreeNode {
+  title: React.ReactNode;
+  key: string;
+  isLeaf: boolean;
+  children?: TreeNode[];
+}
+
+type ImagePathMode = 'file-relative' | 'app-relative';
+type PdfPageSize = 'A4' | 'Letter';
+type PdfTheme = 'typora' | 'github' | 'custom';
+
+const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.txt'];
+const DEFAULT_FIND_STATE: SearchState = { total: 0, currentIndex: -1 };
+const DEFAULT_PDF_CUSTOM_CSS = `.markdown-body {
+  font-family: "Times New Roman", "Songti SC", serif;
+  line-height: 1.7;
+}
+
+.markdown-body h1, .markdown-body h2 {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.3em;
+}`;
+
+function Notes() {
+  const [openedFolder, setOpenedFolder] = useState<string | null>(null);
+  const [fileTree, setFileTree] = useState<FileItem[]>([]);
+  const [openedFiles, setOpenedFiles] = useState<OpenedFile[]>([]);
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+
+  const [editingContent, setEditingContent] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newFileName, setNewFileName] = useState('');
+  const [showNewFileModal, setShowNewFileModal] = useState(false);
+  const [headings, setHeadings] = useState<HeadingItem[]>([]);
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+  const [showOutline, setShowOutline] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const [typewriterMode, setTypewriterMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<{ path: string; name: string } | null>(null);
+  const [newName, setNewName] = useState('');
+
+  const [imagePathMode, setImagePathMode] = useState<ImagePathMode>('file-relative');
+  const [pdfPageSize, setPdfPageSize] = useState<PdfPageSize>('A4');
+  const [pdfPrintBackground, setPdfPrintBackground] = useState(true);
+  const [pdfTheme, setPdfTheme] = useState<PdfTheme>('typora');
+  const [pdfCustomCss, setPdfCustomCss] = useState(DEFAULT_PDF_CUSTOM_CSS);
+  const [pdfCustomCssDraft, setPdfCustomCssDraft] = useState(DEFAULT_PDF_CUSTOM_CSS);
+  const [showPdfTemplateModal, setShowPdfTemplateModal] = useState(false);
+  const [outlineMaxLevel, setOutlineMaxLevel] = useState(6);
+  const [showFindBar, setShowFindBar] = useState(false);
+  const [showReplaceBar, setShowReplaceBar] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [findCaseSensitive, setFindCaseSensitive] = useState(false);
+  const [findWholeWord, setFindWholeWord] = useState(false);
+  const [findRegex, setFindRegex] = useState(false);
+  const [findState, setFindState] = useState<SearchState>(DEFAULT_FIND_STATE);
+
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const editorRef = useRef<MilkdownEditorHandle | null>(null);
+
+  const loadRecentFiles = async () => {
+    try {
+      const saved = await (window as any).electronAPI.settings.get('recentFiles');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setRecentFiles(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load recent files:', error);
+    }
+  };
+
+  const loadNotesPreferences = async () => {
+    try {
+      const [imageMode, pageSize, printBackground, theme, customCss, outlineLevel] = await Promise.all([
+        (window as any).electronAPI.settings.get('notesImagePathMode'),
+        (window as any).electronAPI.settings.get('notesPdfPageSize'),
+        (window as any).electronAPI.settings.get('notesPdfPrintBackground'),
+        (window as any).electronAPI.settings.get('notesPdfTheme'),
+        (window as any).electronAPI.settings.get('notesPdfCustomCss'),
+        (window as any).electronAPI.settings.get('notesOutlineMaxLevel'),
+      ]);
+
+      if (imageMode === 'app-relative' || imageMode === 'file-relative') {
+        setImagePathMode(imageMode);
+      }
+      if (pageSize === 'A4' || pageSize === 'Letter') {
+        setPdfPageSize(pageSize);
+      }
+      if (printBackground === 'true' || printBackground === 'false') {
+        setPdfPrintBackground(printBackground === 'true');
+      }
+      if (theme === 'typora' || theme === 'github' || theme === 'custom') {
+        setPdfTheme(theme);
+      }
+      if (typeof customCss === 'string' && customCss.trim()) {
+        setPdfCustomCss(customCss);
+        setPdfCustomCssDraft(customCss);
+      }
+      const parsedOutlineLevel = Number(outlineLevel);
+      if (Number.isFinite(parsedOutlineLevel) && parsedOutlineLevel >= 1 && parsedOutlineLevel <= 6) {
+        setOutlineMaxLevel(parsedOutlineLevel);
+      }
+    } catch (error) {
+      console.error('Failed to load notes preferences:', error);
+    }
+  };
+
+  const saveRecentFiles = useCallback(async (files: string[]) => {
+    try {
+      await (window as any).electronAPI.settings.set('recentFiles', JSON.stringify(files), 'notes');
+    } catch (error) {
+      console.error('Failed to save recent files:', error);
+    }
+  }, []);
+
+  const saveNotesPreference = async (key: string, value: string) => {
+    try {
+      await (window as any).electronAPI.settings.set(key, value, 'notes');
+    } catch (error) {
+      console.error(`Failed to save notes preference (${key}):`, error);
+    }
+  };
+
+  const saveImagePathMode = async (mode: ImagePathMode) => {
+    await saveNotesPreference('notesImagePathMode', mode);
+  };
+
+  const addToRecentFiles = useCallback((filePath: string) => {
+    setRecentFiles((prev) => {
+      const filtered = prev.filter((p) => p !== filePath);
+      const updated = [filePath, ...filtered].slice(0, 20);
+      void saveRecentFiles(updated);
+      return updated;
+    });
+  }, [saveRecentFiles]);
+
+  const removeFromRecentFiles = useCallback((filePath: string) => {
+    setRecentFiles((prev) => {
+      const updated = prev.filter((item) => item !== filePath);
+      void saveRecentFiles(updated);
+      return updated;
+    });
+  }, [saveRecentFiles]);
+
+  const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<FileItem[]> => {
+    if (depth > 12) {
+      return [];
+    }
+
+    const result = await (window as any).electronAPI.fs.readFolder(folderPath);
+    if (!result.success) {
+      return [];
+    }
+
+    const folders = (result.folders || []).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+    const files = (result.files || []).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+    const folderItems = await Promise.all(
+      folders.map(async (folder: any) => ({
+        name: folder.name,
+        path: folder.path,
+        isDirectory: true,
+        children: await buildFolderTree(folder.path, depth + 1),
+      }))
+    );
+
+    const fileItems = files.map((file: any) => ({
+      name: file.name,
+      path: file.path,
+      isDirectory: false,
+    }));
+
+    return [...folderItems, ...fileItems];
+  }, []);
+
+  const loadFolder = useCallback(
+    async (folderPath: string) => {
+      try {
+        const treeData = await buildFolderTree(folderPath);
+        setFileTree(treeData);
+      } catch (error) {
+        console.error('Failed to load folder:', error);
+        Message.error('加载文件夹失败');
+      }
+    },
+    [buildFolderTree]
+  );
+
+  useEffect(() => {
+    loadRecentFiles();
+    void loadNotesPreferences();
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!openedFolder) {
+      return;
+    }
+
+    const handleFolderChange = () => {
+      void loadFolder(openedFolder);
+    };
+
+    (window as any).electronAPI.fs.onFolderChange(handleFolderChange);
+    void (window as any).electronAPI.fs.watchFolder(openedFolder);
+
+    return () => {
+      (window as any).electronAPI.fs.removeFolderChangeListener();
+      void (window as any).electronAPI.fs.unwatchFolder(openedFolder);
+    };
+  }, [openedFolder, loadFolder]);
+
+  const getFindOptions = useCallback((): SearchOptions => {
+    return {
+      query: findText,
+      caseSensitive: findCaseSensitive,
+      wholeWord: findWholeWord,
+      regex: findRegex,
+    };
+  }, [findCaseSensitive, findRegex, findText, findWholeWord]);
+
+  const refreshFindState = useCallback(() => {
+    if (!showFindBar || !editorRef.current) {
+      setFindState(DEFAULT_FIND_STATE);
+      return;
+    }
+
+    const state = editorRef.current.getSearchState(getFindOptions());
+    setFindState(state);
+  }, [getFindOptions, showFindBar]);
+
+  const openFindPanel = useCallback((withReplace = false) => {
+    setShowFindBar(true);
+    if (withReplace) {
+      setShowReplaceBar(true);
+    }
+    setTimeout(() => {
+      if (editorRef.current) {
+        setFindState(editorRef.current.getSearchState(getFindOptions()));
+      }
+    }, 0);
+  }, [getFindOptions]);
+
+  const closeFindPanel = useCallback(() => {
+    setShowFindBar(false);
+    setShowReplaceBar(false);
+    setFindState(DEFAULT_FIND_STATE);
+  }, []);
+
+  const handleFindNext = useCallback(() => {
+    if (!editorRef.current) return;
+    const state = editorRef.current.findNext(getFindOptions());
+    setFindState(state);
+  }, [getFindOptions]);
+
+  const handleFindPrev = useCallback(() => {
+    if (!editorRef.current) return;
+    const state = editorRef.current.findPrev(getFindOptions());
+    setFindState(state);
+  }, [getFindOptions]);
+
+  const handleReplaceCurrent = useCallback(() => {
+    if (!editorRef.current) return;
+    const state = editorRef.current.replaceCurrent(getFindOptions(), replaceText);
+    setFindState(state);
+  }, [getFindOptions, replaceText]);
+
+  const handleReplaceAll = useCallback(() => {
+    if (!editorRef.current) return;
+    const state = editorRef.current.replaceAll(getFindOptions(), replaceText);
+    setFindState(state);
+    if (state.replacedCount > 0) {
+      Message.success(`已替换 ${state.replacedCount} 处`);
+    }
+  }, [getFindOptions, replaceText]);
+
+  useEffect(() => {
+    if (!showFindBar) return;
+    refreshFindState();
+  }, [editingContent, showFindBar, currentFilePath, findText, findCaseSensitive, findWholeWord, findRegex, refreshFindState]);
+
+  const handleOpenFolder = async () => {
+    try {
+      const result = await (window as any).electronAPI.fs.openFolder();
+      if (result.success && result.folderPath) {
+        setOpenedFolder(result.folderPath);
+        await (window as any).electronAPI.settings.set('notesRootFolder', result.folderPath, 'notes');
+        await loadFolder(result.folderPath);
+      }
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+      Message.error('打开文件夹失败');
+    }
+  };
+
+  const loadSingleFile = useCallback(async (filePath: string) => {
+    try {
+      const result = await (window as any).electronAPI.fs.readFile(filePath);
+      if (result.success) {
+        const dir = filePath.substring(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')));
+        setOpenedFolder(dir);
+        await (window as any).electronAPI.settings.set('notesRootFolder', dir, 'notes');
+
+        const newFile: OpenedFile = {
+          path: filePath,
+          name: filePath.split(/[\\/]/).pop() || filePath,
+          content: result.content,
+          isModified: false,
+        };
+
+        setOpenedFiles((prev) => {
+          const existing = prev.find((f) => f.path === filePath);
+          if (existing) {
+            return prev.map((f) => (f.path === filePath ? { ...f, content: result.content, isModified: false } : f));
+          }
+          return [...prev, newFile];
+        });
+        setCurrentFilePath(filePath);
+        setEditingContent(result.content);
+        setLastSavedAt(Date.now());
+        await loadFolder(dir);
+      }
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      Message.error('读取文件失败');
+    }
+  }, [loadFolder]);
+
+  const handleOpenFile = useCallback(async () => {
+    try {
+      const result = await (window as any).electronAPI.fs.openFile();
+      if (result.success && result.filePath) {
+        await loadSingleFile(result.filePath);
+        addToRecentFiles(result.filePath);
+      }
+    } catch (error) {
+      console.error('Failed to open file:', error);
+      Message.error('打开文件失败');
+    }
+  }, [addToRecentFiles, loadSingleFile]);
+
+  const handleSaveAs = useCallback(async () => {
+    try {
+      const defaultName = currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'untitled.md';
+      const result = await (window as any).electronAPI.fs.saveFileDialog(editingContent, defaultName);
+      if (result.success && result.filePath) {
+        await loadSingleFile(result.filePath);
+        addToRecentFiles(result.filePath);
+        Message.success('文件已保存');
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error);
+      Message.error('保存文件失败');
+    }
+  }, [addToRecentFiles, currentFilePath, editingContent, loadSingleFile]);
+
+  const handleFileSelect = async (filePath: string) => {
+    const existingFile = openedFiles.find((f) => f.path === filePath);
+    if (existingFile) {
+      setCurrentFilePath(filePath);
+      setEditingContent(existingFile.content);
+      return;
+    }
+
+    await loadSingleFile(filePath);
+    addToRecentFiles(filePath);
+  };
+
+  const saveFile = useCallback(async (filePath: string, content: string, silent = false) => {
+    setIsSaving(true);
+    try {
+      const result = await (window as any).electronAPI.fs.writeFile(filePath, content);
+      if (result.success) {
+        setOpenedFiles((prev) => prev.map((f) => (f.path === filePath ? { ...f, isModified: false } : f)));
+        setLastSavedAt(Date.now());
+        if (!silent) {
+          Message.success('已保存');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error);
+      Message.error('保存文件失败');
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const handleContentChange = useCallback(
+    (content: string) => {
+      setEditingContent(content);
+
+      if (currentFilePath) {
+        setOpenedFiles((prev) => prev.map((f) => (f.path === currentFilePath ? { ...f, content, isModified: true } : f)));
+      }
+
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
+      autoSaveTimerRef.current = setTimeout(() => {
+        if (currentFilePath) {
+          void saveFile(currentFilePath, content, true);
+        }
+      }, 1500);
+    },
+    [currentFilePath, saveFile]
+  );
+
+  const handleManualSave = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    if (currentFilePath) {
+      void saveFile(currentFilePath, editingContent);
+    } else {
+      void handleSaveAs();
+    }
+  }, [currentFilePath, editingContent, handleSaveAs, saveFile]);
+
+  const handleCreateFile = async () => {
+    if (!newFileName.trim()) {
+      Message.warning('请输入文件名');
+      return;
+    }
+
+    const folderPath =
+      openedFolder ||
+      (currentFilePath
+        ? currentFilePath.substring(0, Math.max(currentFilePath.lastIndexOf('/'), currentFilePath.lastIndexOf('\\')))
+        : null);
+
+    if (!folderPath) {
+      Message.warning('请先打开文件夹或文件');
+      return;
+    }
+
+    try {
+      const result = await (window as any).electronAPI.fs.createFile(
+        folderPath,
+        newFileName.endsWith('.md') ? newFileName : `${newFileName}.md`
+      );
+      if (result.success) {
+        setNewFileName('');
+        setShowNewFileModal(false);
+        await loadFolder(folderPath);
+        if (result.filePath) {
+          await handleFileSelect(result.filePath);
+        }
+      } else {
+        Message.error(result.error || '创建文件失败');
+      }
+    } catch (error) {
+      console.error('Failed to create file:', error);
+      Message.error('创建文件失败');
+    }
+  };
+
+  const handleDeleteFile = async (filePath: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个文件吗？此操作无法撤销。',
+      onOk: async () => {
+        try {
+          await (window as any).electronAPI.fs.deleteFile(filePath);
+          closeFileTab(filePath);
+          removeFromRecentFiles(filePath);
+          if (openedFolder) {
+            await loadFolder(openedFolder);
+          }
+        } catch (error) {
+          console.error('Failed to delete file:', error);
+          Message.error('删除文件失败');
+        }
+      },
+    });
+  };
+
+  const closeFileTab = useCallback((filePath: string) => {
+    setOpenedFiles((prev) => {
+      const closingIndex = prev.findIndex((file) => file.path === filePath);
+      const remaining = prev.filter((file) => file.path !== filePath);
+
+      if (currentFilePath === filePath) {
+        const targetIndex = Math.max(0, closingIndex - 1);
+        const nextFile = remaining[targetIndex] || remaining[0] || null;
+        setCurrentFilePath(nextFile?.path || null);
+        setEditingContent(nextFile?.content || '');
+      }
+
+      return remaining;
+    });
+  }, [currentFilePath]);
+
+  const handleCloseFile = useCallback((filePath: string) => {
+    const file = openedFiles.find((f) => f.path === filePath);
+    if (file?.isModified) {
+      Modal.confirm({
+        title: '文件未保存',
+        content: '文件有未保存的更改，是否保存？',
+        okText: '保存',
+        cancelText: '不保存',
+        onOk: async () => {
+          await saveFile(filePath, file.content);
+          closeFileTab(filePath);
+        },
+        onCancel: () => {
+          closeFileTab(filePath);
+        },
+      });
+    } else {
+      closeFileTab(filePath);
+    }
+  }, [closeFileTab, openedFiles, saveFile]);
+
+  const formatSaveStatus = () => {
+    if (isSaving) return '保存中...';
+    if (currentFilePath) {
+      const file = openedFiles.find((f) => f.path === currentFilePath);
+      if (file?.isModified) return '未保存';
+    }
+    if (lastSavedAt) {
+      const seconds = Math.floor((Date.now() - lastSavedAt) / 1000);
+      if (seconds < 60) return '刚刚已保存';
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟前已保存`;
+    }
+    return '';
+  };
+
+  const getCurrentFileName = () => {
+    if (!currentFilePath) return '未打开文件';
+    return currentFilePath.split(/[\\/]/).pop();
+  };
+
+  const currentFile = currentFilePath ? openedFiles.find((file) => file.path === currentFilePath) || null : null;
+
+  const wordCount = useMemo(() => {
+    const trimmed = editingContent.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
+  }, [editingContent]);
+
+  const charCount = editingContent.length;
+
+  const handleImagePathModeChange = (mode: ImagePathMode) => {
+    setImagePathMode(mode);
+    void saveImagePathMode(mode);
+  };
+
+  const handlePdfPageSizeChange = (size: PdfPageSize) => {
+    setPdfPageSize(size);
+    void saveNotesPreference('notesPdfPageSize', size);
+  };
+
+  const handlePdfPrintBackgroundChange = (enabled: boolean) => {
+    setPdfPrintBackground(enabled);
+    void saveNotesPreference('notesPdfPrintBackground', enabled ? 'true' : 'false');
+  };
+
+  const handlePdfThemeChange = (theme: PdfTheme) => {
+    setPdfTheme(theme);
+    void saveNotesPreference('notesPdfTheme', theme);
+  };
+
+  const openPdfTemplateModal = () => {
+    setPdfCustomCssDraft(pdfCustomCss);
+    setShowPdfTemplateModal(true);
+  };
+
+  const handleSavePdfTemplate = () => {
+    const nextCss = pdfCustomCssDraft.trim() ? pdfCustomCssDraft : DEFAULT_PDF_CUSTOM_CSS;
+    setPdfCustomCss(nextCss);
+    setPdfCustomCssDraft(nextCss);
+    setShowPdfTemplateModal(false);
+    void saveNotesPreference('notesPdfCustomCss', nextCss);
+    Message.success('已保存 PDF 模板');
+  };
+
+  const handleOutlineMaxLevelChange = (level: number) => {
+    const nextLevel = Math.min(6, Math.max(1, level));
+    setOutlineMaxLevel(nextLevel);
+    void saveNotesPreference('notesOutlineMaxLevel', String(nextLevel));
+  };
+
+  const handleInsertTable = useCallback(() => {
+    if (!currentFilePath) {
+      Message.warning('请先打开一个 Markdown 文件');
+      return;
+    }
+    editorRef.current?.insertTable(2, 3);
+  }, [currentFilePath]);
+
+  const handleInsertCodeBlock = useCallback((language = '') => {
+    if (!currentFilePath) {
+      Message.warning('请先打开一个 Markdown 文件');
+      return;
+    }
+    editorRef.current?.insertCodeBlock(language);
+  }, [currentFilePath]);
+
+  const handleDeleteCurrentTable = useCallback(() => {
+    if (!currentFilePath) {
+      Message.warning('请先打开一个 Markdown 文件');
+      return;
+    }
+    const deleted = editorRef.current?.deleteCurrentTable();
+    if (!deleted) {
+      Message.warning('当前光标不在表格中');
+    }
+  }, [currentFilePath]);
+
+  const settingsMenu = (
+    <Menu>
+      <Menu.Item key="sidebar">
+        <div className="settings-menu-item">
+          <span>侧边栏</span>
+          <Switch size="small" checked={showSidebar} onChange={setShowSidebar} />
+        </div>
+      </Menu.Item>
+      <Menu.Item key="outline">
+        <div className="settings-menu-item">
+          <span>大纲视图</span>
+          <Switch size="small" checked={showOutline} onChange={setShowOutline} />
+        </div>
+      </Menu.Item>
+      <Menu.Item key="focus">
+        <div className="settings-menu-item">
+          <span>专注模式</span>
+          <Switch size="small" checked={focusMode} onChange={setFocusMode} />
+        </div>
+      </Menu.Item>
+      <Menu.Item key="typewriter">
+        <div className="settings-menu-item">
+          <span>打字机模式</span>
+          <Switch size="small" checked={typewriterMode} onChange={setTypewriterMode} />
+        </div>
+      </Menu.Item>
+      <Menu.Item key="imagePathMode">
+        <div className="settings-menu-item">
+          <span>图片存应用目录</span>
+          <Switch
+            size="small"
+            checked={imagePathMode === 'app-relative'}
+            onChange={(checked) => handleImagePathModeChange(checked ? 'app-relative' : 'file-relative')}
+          />
+        </div>
+      </Menu.Item>
+      <Menu.Item key="outlineDepth">
+        <div className="settings-menu-item settings-menu-item-wide">
+          <span>大纲层级</span>
+          <div className="settings-inline-actions">
+            <Button
+              size="mini"
+              type={outlineMaxLevel === 3 ? 'primary' : 'outline'}
+              onClick={() => handleOutlineMaxLevelChange(3)}
+            >
+              H1-H3
+            </Button>
+            <Button
+              size="mini"
+              type={outlineMaxLevel === 6 ? 'primary' : 'outline'}
+              onClick={() => handleOutlineMaxLevelChange(6)}
+            >
+              全部
+            </Button>
+          </div>
+        </div>
+      </Menu.Item>
+      <Menu.Item key="pdfTheme">
+        <div className="settings-menu-item settings-menu-item-wide">
+          <span>PDF 主题</span>
+          <div className="settings-inline-actions">
+            <Button size="mini" type={pdfTheme === 'typora' ? 'primary' : 'outline'} onClick={() => handlePdfThemeChange('typora')}>
+              Typora
+            </Button>
+            <Button size="mini" type={pdfTheme === 'github' ? 'primary' : 'outline'} onClick={() => handlePdfThemeChange('github')}>
+              GitHub
+            </Button>
+            <Button size="mini" type={pdfTheme === 'custom' ? 'primary' : 'outline'} onClick={() => handlePdfThemeChange('custom')}>
+              自定义
+            </Button>
+          </div>
+        </div>
+      </Menu.Item>
+      <Menu.Item key="pdfTemplateEditor">
+        <div className="settings-menu-item settings-menu-item-wide">
+          <span>模板 CSS</span>
+          <Button size="mini" onClick={openPdfTemplateModal}>
+            编辑
+          </Button>
+        </div>
+      </Menu.Item>
+      <Menu.Item key="pdfPageSize">
+        <div className="settings-menu-item settings-menu-item-wide">
+          <span>PDF 纸张</span>
+          <div className="settings-inline-actions">
+            <Button size="mini" type={pdfPageSize === 'A4' ? 'primary' : 'outline'} onClick={() => handlePdfPageSizeChange('A4')}>
+              A4
+            </Button>
+            <Button
+              size="mini"
+              type={pdfPageSize === 'Letter' ? 'primary' : 'outline'}
+              onClick={() => handlePdfPageSizeChange('Letter')}
+            >
+              Letter
+            </Button>
+          </div>
+        </div>
+      </Menu.Item>
+      <Menu.Item key="pdfPrintBackground">
+        <div className="settings-menu-item">
+          <span>PDF 背景</span>
+          <Switch size="small" checked={pdfPrintBackground} onChange={handlePdfPrintBackgroundChange} />
+        </div>
+      </Menu.Item>
+    </Menu>
+  );
+
+  const codeBlockMenu = (
+    <Menu>
+      <Menu.Item key="plain" onClick={() => handleInsertCodeBlock()}>
+        普通代码块
+      </Menu.Item>
+      <Menu.Item key="java" onClick={() => handleInsertCodeBlock('java')}>
+        Java
+      </Menu.Item>
+      <Menu.Item key="python" onClick={() => handleInsertCodeBlock('python')}>
+        Python
+      </Menu.Item>
+    </Menu>
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        setShowSidebar((prev) => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          void handleSaveAs();
+        } else {
+          handleManualSave();
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+        e.preventDefault();
+        void handleOpenFile();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        setShowNewFileModal(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'w' && currentFilePath) {
+        e.preventDefault();
+        handleCloseFile(currentFilePath);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        if (!currentFilePath) {
+          Message.warning('请先打开一个 Markdown 文件');
+          return;
+        }
+        void editorRef.current?.insertImageFromDialog();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        handleInsertTable();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        handleInsertCodeBlock();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteCurrentTable();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && !e.altKey) {
+        e.preventDefault();
+        openFindPanel(false);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        openFindPanel(true);
+      }
+      if (showFindBar && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleFindPrev();
+        } else {
+          handleFindNext();
+        }
+      }
+      if (showFindBar && e.key === 'Escape') {
+        e.preventDefault();
+        closeFindPanel();
+      }
+      if (showFindBar && e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleFindPrev();
+        } else {
+          handleFindNext();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    closeFindPanel,
+    handleCloseFile,
+    handleDeleteCurrentTable,
+    handleInsertCodeBlock,
+    handleInsertTable,
+    currentFilePath,
+    handleFindNext,
+    handleFindPrev,
+    handleManualSave,
+    handleOpenFile,
+    handleSaveAs,
+    openFindPanel,
+    showFindBar,
+  ]);
+
+  const handleRename = async () => {
+    if (!renamingFile || !newName.trim()) return;
+    const oldPath = renamingFile.path;
+    const lastSlash = Math.max(oldPath.lastIndexOf('/'), oldPath.lastIndexOf('\\'));
+    const dir = oldPath.substring(0, lastSlash);
+    const isMd = renamingFile.name.endsWith('.md');
+
+    let finalName = newName;
+    if (isMd && !newName.endsWith('.md')) {
+      finalName += '.md';
+    }
+
+    const pathSep = oldPath.includes('\\') ? '\\' : '/';
+    const newPath = `${dir}${pathSep}${finalName}`;
+
+    try {
+      const result = await (window as any).electronAPI.fs.renameFile(oldPath, newPath);
+      if (result.success) {
+        setRenameModalVisible(false);
+        setRenamingFile(null);
+        setNewName('');
+        if (openedFolder) await loadFolder(openedFolder);
+
+        setOpenedFiles((prev) =>
+          prev.map((f) => {
+            if (f.path === oldPath) {
+              return { ...f, path: newPath, name: finalName };
+            }
+            return f;
+          })
+        );
+
+        if (currentFilePath === oldPath) {
+          setCurrentFilePath(newPath);
+        }
+        Message.success('重命名成功');
+      } else {
+        Message.error(result.error || '重命名失败');
+      }
+    } catch (error) {
+      console.error('Failed to rename file:', error);
+      Message.error('重命名失败');
+    }
+  };
+
+  const handleRevealFile = async (filePath: string) => {
+    try {
+      await (window as any).electronAPI.fs.reveal(filePath);
+    } catch (error) {
+      console.error('Failed to reveal file:', error);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    const title = getCurrentFileName()?.replace('.md', '') || 'document';
+    if (!editingContent) {
+      Message.warning('没有可导出的内容');
+      return;
+    }
+
+    const hide = Message.loading('正在导出 PDF...');
+    try {
+      const result = await (window as any).electronAPI.export.toPDFAdvanced(editingContent, title, {
+        pageSize: pdfPageSize,
+        printBackground: pdfPrintBackground,
+        theme: pdfTheme,
+        customCss: pdfTheme === 'custom' ? pdfCustomCss : undefined,
+      });
+      hide();
+      if (result.success) {
+        Message.success('导出 PDF 成功');
+      } else if (result.error) {
+        Message.error(`导出 PDF 失败: ${result.error}`);
+      }
+    } catch (error) {
+      hide();
+      console.error('Failed to export PDF:', error);
+      Message.error('导出 PDF 失败');
+    }
+  };
+
+  const handleFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+
+    for (const file of files) {
+      const lowerName = file.name.toLowerCase();
+      const isSupported = MARKDOWN_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+      if (isSupported && (file as any).path) {
+        await loadSingleFile((file as any).path);
+        addToRecentFiles((file as any).path);
+      }
+    }
+  };
+
+  const renderContextMenu = (item: FileItem) => (
+    <Menu>
+      <Menu.Item
+        key="rename"
+        onClick={(e) => {
+          e.stopPropagation();
+          setRenamingFile({ path: item.path, name: item.name });
+          setNewName(item.name);
+          setRenameModalVisible(true);
+        }}
+      >
+        重命名
+      </Menu.Item>
+      <Menu.Item
+        key="reveal"
+        onClick={(e) => {
+          e.stopPropagation();
+          void handleRevealFile(item.path);
+        }}
+      >
+        在访达中显示
+      </Menu.Item>
+      {!item.isDirectory && (
+        <Menu.Item
+          key="delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            void handleDeleteFile(item.path);
+          }}
+        >
+          <span style={{ color: 'var(--danger-soft)' }}>删除</span>
+        </Menu.Item>
+      )}
+    </Menu>
+  );
+
+  const getFilteredFileTree = (tree: FileItem[], query: string): FileItem[] => {
+    if (!query) return tree;
+    return tree
+      .map((item) => {
+        if (item.isDirectory) {
+          const children = getFilteredFileTree(item.children || [], query);
+          if (children.length > 0 || item.name.toLowerCase().includes(query.toLowerCase())) {
+            return { ...item, children };
+          }
+          return null;
+        }
+        if (item.name.toLowerCase().includes(query.toLowerCase())) {
+          return item;
+        }
+        return null;
+      })
+      .filter(Boolean) as FileItem[];
+  };
+
+  const handleOpenRecentFile = async (filePath: string) => {
+    const existsResult = await (window as any).electronAPI.fs.fileExists(filePath);
+    if (!existsResult.success || !existsResult.exists) {
+      removeFromRecentFiles(filePath);
+      Message.warning('文件不存在，已从最近列表移除');
+      return;
+    }
+    await handleFileSelect(filePath);
+  };
+
+  const renderFileTree = (data: FileItem[]): TreeNode[] => {
+    return data.map((item) => ({
+      title: (
+        <Dropdown droplist={renderContextMenu(item)} trigger="contextMenu" position="bl">
+          <span className={`file-tree-item ${item.isDirectory ? 'folder' : 'file'}`}>
+            {item.isDirectory ? <IconFolder /> : <IconFile />}
+            {item.name}
+          </span>
+        </Dropdown>
+      ),
+      key: item.path,
+      isLeaf: !item.isDirectory,
+      children: item.children ? renderFileTree(item.children) : undefined,
+    }));
+  };
+
+  const getCurrentFileDir = () => {
+    if (currentFilePath) {
+      const lastSlash = Math.max(currentFilePath.lastIndexOf('/'), currentFilePath.lastIndexOf('\\'));
+      if (lastSlash !== -1) {
+        return currentFilePath.substring(0, lastSlash);
+      }
+    }
+    return undefined;
+  };
+
+  const getImageSavePath = () => {
+    if (imagePathMode === 'app-relative') {
+      return undefined;
+    }
+    return getCurrentFileDir();
+  };
+
+  const handleInsertImage = async () => {
+    if (!currentFilePath) {
+      Message.warning('请先打开一个 Markdown 文件');
+      return;
+    }
+
+    try {
+      await editorRef.current?.insertImageFromDialog();
+    } catch (error) {
+      console.error('Failed to insert image:', error);
+      Message.error('插入图片失败');
+    }
+  };
+
+  const handleRefreshFolder = async () => {
+    if (openedFolder) {
+      await loadFolder(openedFolder);
+      Message.success('已刷新');
+    }
+  };
+
+  const renderFindStatus = () => {
+    if (findState.error) {
+      return findState.error;
+    }
+    if (findState.total <= 0) {
+      return '0/0';
+    }
+    const current = findState.currentIndex >= 0 ? findState.currentIndex + 1 : 0;
+    return `${current}/${findState.total}`;
+  };
+
+  return (
+    <div className={`notes-page ${focusMode ? 'focus-mode' : ''}`} onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop}>
+      <div className="notes-header typora-header">
+        <div className="header-left">
+          <IconFile style={{ marginRight: 8, opacity: 0.6 }} />
+          <span className="current-file-name">{getCurrentFileName()}</span>
+          {currentFilePath && (
+            <span className="file-path" title={currentFilePath}>
+              {currentFilePath}
+            </span>
+          )}
+        </div>
+
+        <div className="header-right">
+          <Tooltip content="打开文件 (Cmd+O)">
+            <Button icon={<IconArchive />} onClick={handleOpenFile} />
+          </Tooltip>
+          <Tooltip content="打开文件夹">
+            <Button icon={<IconFolder />} onClick={handleOpenFolder} />
+          </Tooltip>
+          <Tooltip content="新建文件 (Cmd+N)">
+            <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)} />
+          </Tooltip>
+          <Tooltip content="保存 (Cmd+S)">
+            <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving} />
+          </Tooltip>
+          <Tooltip content="插入图片 (Shift+Cmd+I)">
+            <Button icon={<IconImage />} onClick={handleInsertImage} disabled={!currentFilePath} />
+          </Tooltip>
+          <Tooltip content="另存为 (Shift+Cmd+S)">
+            <Button icon={<IconDownload />} onClick={handleSaveAs} />
+          </Tooltip>
+          <Tooltip content="导出 PDF">
+            <Button icon={<IconDownload />} onClick={handleExportPDF} />
+          </Tooltip>
+          <Divider type="vertical" />
+          <Tooltip content="专注模式">
+            <Button icon={focusMode ? <IconEye /> : <IconEyeInvisible />} onClick={() => setFocusMode(!focusMode)} />
+          </Tooltip>
+          <Tooltip content="侧边栏 (Cmd+B)">
+            <Button icon={<IconMenu />} onClick={() => setShowSidebar(!showSidebar)} />
+          </Tooltip>
+          <Dropdown droplist={settingsMenu} position="bottom">
+            <Button icon={<IconMore />} />
+          </Dropdown>
+        </div>
+      </div>
+
+      <Layout className={`notes-layout ${showSidebar ? '' : 'sidebar-hidden'}`}>
+        <Sider width={280} className="notes-sider" collapsed={!showSidebar} collapsedWidth={0}>
+          <Tabs defaultActiveTab="files" type="line">
+            <TabPane key="files" title="文件树">
+              <div className="notes-search">
+                <Input
+                  placeholder="搜索文件..."
+                  prefix={<IconSearch />}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  allowClear
+                />
+              </div>
+              {openedFolder && (
+                <div className="folder-path" title={openedFolder}>
+                  <span className="folder-path-text">{openedFolder}</span>
+                  <Button icon={<IconRefresh />} size="mini" type="text" onClick={handleRefreshFolder} />
+                </div>
+              )}
+              {fileTree.length > 0 ? (
+                <Tree
+                  className="file-tree"
+                  treeData={renderFileTree(getFilteredFileTree(fileTree, searchQuery))}
+                  onSelect={(keys) => {
+                    if (keys.length > 0) {
+                      void handleFileSelect(keys[0] as string);
+                    }
+                  }}
+                />
+              ) : (
+                <Empty description={openedFolder ? '文件夹为空' : '点击"打开文件夹"开始'} style={{ marginTop: 40 }} />
+              )}
+            </TabPane>
+            <TabPane key="recent" title="最近">
+              {recentFiles.length > 0 ? (
+                <List
+                  className="recent-files-list"
+                  dataSource={recentFiles}
+                  render={(filePath: string) => (
+                    <List.Item className="recent-file-item" onClick={() => void handleOpenRecentFile(filePath)}>
+                      <IconFile style={{ marginRight: 8 }} />
+                      <div className="recent-file-info">
+                        <div className="recent-file-name">{filePath.split(/[\\/]/).pop()}</div>
+                        <div className="recent-file-path">{filePath}</div>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <Empty description="暂无最近打开的文件" style={{ marginTop: 40 }} />
+              )}
+            </TabPane>
+          </Tabs>
+        </Sider>
+
+        <Content className="notes-content">
+          {openedFiles.length > 0 ? (
+            <>
+              <div className="open-tabs-bar">
+                {openedFiles.map((file) => (
+                  <div
+                    key={file.path}
+                    className={`open-tab-item ${currentFilePath === file.path ? 'active' : ''}`}
+                    onClick={() => void handleFileSelect(file.path)}
+                  >
+                    <span className="open-tab-name">
+                      {file.name}
+                      {file.isModified ? ' *' : ''}
+                    </span>
+                    <span
+                      className="open-tab-close"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseFile(file.path);
+                      }}
+                    >
+                      ×
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="notes-toolbar">
+                <div className="notes-toolbar-left">
+                  <span className="notes-save-status">{formatSaveStatus()}</span>
+                  <span className="notes-stat">{wordCount} words</span>
+                  <span className="notes-stat">{charCount} chars</span>
+                </div>
+                <div className="notes-toolbar-right">
+                  <Tooltip content="插入表格 (Cmd+Alt+T)">
+                    <Button onClick={handleInsertTable} disabled={!currentFilePath}>
+                      表格
+                    </Button>
+                  </Tooltip>
+                  <Dropdown droplist={codeBlockMenu} position="bl" trigger="click">
+                    <Tooltip content="插入代码块 (Cmd+Alt+K)">
+                      <Button icon={<IconCode />} disabled={!currentFilePath}>
+                        代码块
+                      </Button>
+                    </Tooltip>
+                  </Dropdown>
+                  <Tooltip content="删除当前表格 (Cmd+Alt+⌫)">
+                    <Button onClick={handleDeleteCurrentTable} disabled={!currentFilePath}>
+                      删表
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="查找 (Cmd+F)">
+                    <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
+                  </Tooltip>
+                  <Tooltip content="关闭当前文件 (Cmd+W)">
+                    <Button onClick={() => currentFilePath && handleCloseFile(currentFilePath)} disabled={!currentFilePath}>
+                      关闭
+                    </Button>
+                  </Tooltip>
+                  <Button
+                    status="danger"
+                    icon={<IconDelete />}
+                    onClick={() => currentFile && void handleDeleteFile(currentFile.path)}
+                    disabled={!currentFile}
+                  />
+                </div>
+              </div>
+
+              {showFindBar && (
+                <div className="notes-find-panel">
+                  <div className="notes-find-row">
+                    <Input
+                      placeholder="查找..."
+                      value={findText}
+                      onChange={setFindText}
+                      allowClear
+                      prefix={<IconSearch />}
+                    />
+                    <span className={`notes-find-count ${findState.error ? 'error' : ''}`}>{renderFindStatus()}</span>
+                    <Button size="small" onClick={handleFindPrev}>
+                      上一个
+                    </Button>
+                    <Button size="small" onClick={handleFindNext}>
+                      下一个
+                    </Button>
+                    <Button size="small" onClick={() => setShowReplaceBar((prev) => !prev)}>
+                      替换
+                    </Button>
+                    <Button size="small" onClick={closeFindPanel}>
+                      关闭
+                    </Button>
+                  </div>
+                  <div className="notes-find-options">
+                    <Button
+                      size="mini"
+                      type={findCaseSensitive ? 'primary' : 'outline'}
+                      onClick={() => setFindCaseSensitive((prev) => !prev)}
+                    >
+                      Aa
+                    </Button>
+                    <Button
+                      size="mini"
+                      type={findWholeWord ? 'primary' : 'outline'}
+                      onClick={() => setFindWholeWord((prev) => !prev)}
+                    >
+                      单词
+                    </Button>
+                    <Button
+                      size="mini"
+                      type={findRegex ? 'primary' : 'outline'}
+                      onClick={() => setFindRegex((prev) => !prev)}
+                    >
+                      正则
+                    </Button>
+                  </div>
+                  {showReplaceBar && (
+                    <div className="notes-find-row">
+                      <Input placeholder="替换为..." value={replaceText} onChange={setReplaceText} allowClear />
+                      <Button size="small" type="primary" onClick={handleReplaceCurrent}>
+                        替换当前
+                      </Button>
+                      <Button size="small" onClick={handleReplaceAll}>
+                        全部替换
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="notes-editor-container">
+                <div className="notes-editor-main">
+                  <MilkdownEditor
+                    ref={editorRef}
+                    key={currentFilePath}
+                    value={editingContent}
+                    onChange={handleContentChange}
+                    onSave={handleManualSave}
+                    onHeadingsChange={setHeadings}
+                    onActiveHeadingChange={setActiveHeadingId}
+                    focusMode={focusMode}
+                    typewriterMode={typewriterMode}
+                    imageSavePath={getImageSavePath()}
+                    currentFileDir={getCurrentFileDir()}
+                  />
+                </div>
+                {showOutline && (
+                  <Outline
+                    headings={headings}
+                    activeHeadingId={activeHeadingId}
+                    maxLevel={outlineMaxLevel}
+                    onHeadingClick={(id) => editorRef.current?.scrollToHeading(id)}
+                    visible={showOutline}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <Empty
+              description={
+                <div className="empty-state">
+                  <IconFile style={{ fontSize: 64, marginBottom: 16 }} />
+                  <p>打开 Markdown 文件开始编辑</p>
+                  <div className="empty-actions">
+                    <Button type="primary" icon={<IconArchive />} onClick={handleOpenFile}>
+                      打开文件
+                    </Button>
+                    <Button icon={<IconFolder />} onClick={handleOpenFolder}>
+                      打开文件夹
+                    </Button>
+                  </div>
+                </div>
+              }
+              style={{ marginTop: 100 }}
+            />
+          )}
+        </Content>
+      </Layout>
+
+      <Modal
+        title="新建文件"
+        visible={showNewFileModal}
+        onOk={handleCreateFile}
+        onCancel={() => {
+          setShowNewFileModal(false);
+          setNewFileName('');
+        }}
+        okText="创建"
+        cancelText="取消"
+      >
+        <Input
+          placeholder="文件名 (例如: note.md)"
+          value={newFileName}
+          onChange={setNewFileName}
+          onPressEnter={handleCreateFile}
+          autoFocus
+        />
+      </Modal>
+
+      <Modal
+        title="PDF 模板 CSS"
+        visible={showPdfTemplateModal}
+        onOk={handleSavePdfTemplate}
+        onCancel={() => {
+          setShowPdfTemplateModal(false);
+          setPdfCustomCssDraft(pdfCustomCss);
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Input.TextArea
+          value={pdfCustomCssDraft}
+          onChange={setPdfCustomCssDraft}
+          placeholder="输入自定义 CSS，用于 PDF 导出"
+          autoSize={{ minRows: 12, maxRows: 22 }}
+        />
+      </Modal>
+
+      <Modal
+        title="重命名"
+        visible={renameModalVisible}
+        onOk={handleRename}
+        onCancel={() => {
+          setRenameModalVisible(false);
+          setRenamingFile(null);
+          setNewName('');
+        }}
+      >
+        <Input value={newName} onChange={setNewName} onPressEnter={handleRename} autoFocus />
+      </Modal>
+    </div>
+  );
+}
+
+export default Notes;

@@ -1,0 +1,275 @@
+.code-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.code-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.code-layout {
+  flex: 1;
+  min-height: 0;
+}
+
+.code-sidebar {
+  background: var(--surface-card);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+}
+
+.sidebar-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.workspace-path {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-tree {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 120px;
+}
+
+.tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.tree-folder {
+  color: var(--text-muted);
+}
+
+.tree-file {
+  cursor: pointer;
+}
+
+.tree-file:hover {
+  background: var(--surface-soft);
+}
+
+.tree-file.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.sidebar-recent {
+  min-height: 140px;
+  max-height: 200px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.recent-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-soft);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-item:hover {
+  background: var(--surface-soft-hover);
+}
+
+.code-content {
+  margin-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.editor-card {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vscode-tabs {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  background: #1f2430;
+  border-bottom: 1px solid #2a3040;
+  padding: 0 8px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.vscode-tabs .tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px 6px 0 0;
+  color: #b9c2d0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vscode-tabs .tab.active {
+  background: #2b3245;
+  color: #fff;
+}
+
+.vscode-tabs .tab-title {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vscode-tabs .tab-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  font-size: 14px;
+}
+
+.vscode-statusbar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1f2430;
+  border-top: 1px solid #2a3040;
+  padding: 0 12px;
+  color: #a5b0bf;
+  font-size: 12px;
+}
+
+.vscode-statusbar .status-left,
+.vscode-statusbar .status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.output-card {
+  height: 220px;
+  border-radius: 12px;
+}
+
+.output-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.execution-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.output-content {
+  height: 170px;
+  padding: 14px;
+  overflow-y: auto;
+  background: var(--surface-soft-hover);
+}
+
+.output-content.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.output-content pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 1200px) {
+  .code-layout {
+    flex-direction: column;
+  }
+
+  .code-sidebar {
+    width: 100% !important;
+    max-height: 300px;
+  }
+
+  .code-content {
+    margin-left: 0;
+    margin-top: 12px;
+  }
+}

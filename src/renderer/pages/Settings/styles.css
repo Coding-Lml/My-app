@@ -1,0 +1,81 @@
+.settings-page {
+  max-width: 1020px;
+  margin: 0 auto;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-card {
+  margin-bottom: 0 !important;
+}
+
+.settings-select-sm {
+  width: 160px;
+}
+
+.settings-select-md {
+  width: 220px;
+}
+
+.settings-input-wide {
+  width: 440px;
+}
+
+.settings-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-help {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.backup-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.backup-info h4 {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.backup-info p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 860px) {
+  .settings-input-wide {
+    width: 100%;
+  }
+
+  .backup-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-actions {
+    justify-content: flex-start;
+  }
+}
