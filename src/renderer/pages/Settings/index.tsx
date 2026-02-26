@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Switch, InputNumber, Button, Message, Divider, Space, Modal } from '@arco-design/web-react';
 import { IconSave, IconDownload, IconUpload } from '@arco-design/web-react/icon';
 import { DEFAULT_FONT_FAMILY, FONT_FAMILY_OPTIONS, FontFamilyKey, normalizeFontFamily } from '../../config/fontFamily';
-import { EditorChromeTheme, ThemeMode, UiDensity } from '../../types/theme';
+import { CodeEditorThemePreset, EditorChromeTheme, ThemeMode, UiDensity } from '../../types/theme';
 import { summarizeBackupImport } from '@shared/utils/backup';
 import type { RuntimeCheckResult } from '@shared/types/ipc';
 import './styles.css';
@@ -12,6 +12,7 @@ interface SettingsState {
   fontFamily: FontFamilyKey;
   uiDensity: UiDensity;
   editorChromeTheme: EditorChromeTheme;
+  codeEditorThemePreset: CodeEditorThemePreset;
   fontSize: string;
   javaPath: string;
   pythonPath: string;
@@ -21,7 +22,16 @@ interface SettingsState {
 
 type CoreSettings = Partial<
   Record<
-    'theme' | 'fontFamily' | 'uiDensity' | 'editorChromeTheme' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal',
+    | 'theme'
+    | 'fontFamily'
+    | 'uiDensity'
+    | 'editorChromeTheme'
+    | 'codeEditorThemePreset'
+    | 'fontSize'
+    | 'javaPath'
+    | 'pythonPath'
+    | 'autoSave'
+    | 'dailyGoal',
     string
   >
 >;
@@ -32,6 +42,7 @@ function Settings() {
     fontFamily: DEFAULT_FONT_FAMILY,
     uiDensity: 'comfortable',
     editorChromeTheme: 'auto',
+    codeEditorThemePreset: 'auto-natural',
     fontSize: '14',
     javaPath: '',
     pythonPath: '',
@@ -55,12 +66,19 @@ function Settings() {
           data.editorChromeTheme === 'light' || data.editorChromeTheme === 'dark'
             ? data.editorChromeTheme
             : 'auto';
+        const codeEditorThemePreset: CodeEditorThemePreset =
+          data.codeEditorThemePreset === 'paper-light'
+          || data.codeEditorThemePreset === 'graphite-dark'
+          || data.codeEditorThemePreset === 'classic-vs'
+            ? data.codeEditorThemePreset
+            : 'auto-natural';
         const autoSave: 'true' | 'false' = data.autoSave === 'false' ? 'false' : 'true';
         setSettings({
           theme,
           fontFamily,
           uiDensity,
           editorChromeTheme,
+          codeEditorThemePreset,
           fontSize: data.fontSize || '14',
           javaPath: data.javaPath || '',
           pythonPath: data.pythonPath || '',
@@ -82,6 +100,7 @@ function Settings() {
       await window.electronAPI.settings.set('fontFamily', settings.fontFamily, 'appearance');
       await window.electronAPI.settings.set('uiDensity', settings.uiDensity, 'appearance');
       await window.electronAPI.settings.set('editorChromeTheme', settings.editorChromeTheme, 'code');
+      await window.electronAPI.settings.set('codeEditorThemePreset', settings.codeEditorThemePreset, 'code');
       await window.electronAPI.settings.set('fontSize', settings.fontSize, 'editor');
       await window.electronAPI.settings.set('javaPath', settings.javaPath, 'code');
       await window.electronAPI.settings.set('pythonPath', settings.pythonPath, 'code');
@@ -92,6 +111,9 @@ function Settings() {
       window.dispatchEvent(new CustomEvent('app-ui-density-change', { detail: { density: settings.uiDensity } }));
       window.dispatchEvent(
         new CustomEvent('editor-chrome-theme-change', { detail: { mode: settings.editorChromeTheme } })
+      );
+      window.dispatchEvent(
+        new CustomEvent('editor-theme-preset-change', { detail: { preset: settings.codeEditorThemePreset } })
       );
       Message.success('设置已保存');
     } catch (error) {
@@ -286,6 +308,20 @@ function Settings() {
                 <Select.Option value="auto">跟随主题</Select.Option>
                 <Select.Option value="light">浅色</Select.Option>
                 <Select.Option value="dark">深色</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item label="代码编辑主题">
+              <Select
+                value={settings.codeEditorThemePreset}
+                onChange={(value) =>
+                  setSettings({ ...settings, codeEditorThemePreset: value as CodeEditorThemePreset })}
+                className="settings-select-lg"
+              >
+                <Select.Option value="auto-natural">自然匹配（推荐）</Select.Option>
+                <Select.Option value="paper-light">Paper Light（浅色）</Select.Option>
+                <Select.Option value="graphite-dark">Graphite Dark（深色）</Select.Option>
+                <Select.Option value="classic-vs">Classic VS（经典）</Select.Option>
               </Select>
             </Form.Item>
           </Form>

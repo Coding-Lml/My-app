@@ -11,6 +11,8 @@ import {
   IconCode,
 } from '@arco-design/web-react/icon';
 import Editor from '@monaco-editor/react';
+import type * as Monaco from 'monaco-editor';
+import { CodeEditorThemePreset } from '../../types/theme';
 import WorkspaceSidebar, { WorkspaceFileItem } from './components/WorkspaceSidebar';
 import RunOutputCard from './components/RunOutputCard';
 import './styles.css';
@@ -103,11 +105,34 @@ function parseBooleanSetting(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+function normalizeCodeEditorThemePreset(value: unknown): CodeEditorThemePreset {
+  if (value === 'paper-light' || value === 'graphite-dark' || value === 'classic-vs') {
+    return value;
+  }
+  return 'auto-natural';
+}
+
 function getResolvedEditorChrome(): 'light' | 'dark' {
   if (typeof document === 'undefined') {
     return 'dark';
   }
   return document.documentElement.getAttribute('data-editor-chrome') === 'light' ? 'light' : 'dark';
+}
+
+function resolveMonacoThemeName(
+  preset: CodeEditorThemePreset,
+  resolvedEditorChrome: 'light' | 'dark'
+): 'academia-paper' | 'academia-graphite' | 'vs' | 'vs-dark' {
+  if (preset === 'paper-light') {
+    return 'academia-paper';
+  }
+  if (preset === 'graphite-dark') {
+    return 'academia-graphite';
+  }
+  if (preset === 'classic-vs') {
+    return resolvedEditorChrome === 'light' ? 'vs' : 'vs-dark';
+  }
+  return resolvedEditorChrome === 'light' ? 'academia-paper' : 'academia-graphite';
 }
 
 function CodeRunner() {
@@ -124,6 +149,7 @@ function CodeRunner() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [editorFontSize, setEditorFontSize] = useState(14);
+  const [editorThemePreset, setEditorThemePreset] = useState<CodeEditorThemePreset>('auto-natural');
   const [resolvedEditorChrome, setResolvedEditorChrome] = useState<'light' | 'dark'>(getResolvedEditorChrome);
   const [showWorkspace, setShowWorkspace] = useState(true);
   const [showOutput, setShowOutput] = useState(true);
@@ -137,6 +163,21 @@ function CodeRunner() {
   const activeFileName = currentFile ? currentFile.name : draftFile.name;
   const isCurrentModified = currentFile ? currentFile.isModified : draftFile.isModified;
   const activeContextPath = currentFilePath || (openedFolder ? `${openedFolder}/${draftFile.name}` : draftFile.name);
+  const monacoTheme = useMemo(
+    () => resolveMonacoThemeName(editorThemePreset, resolvedEditorChrome),
+    [editorThemePreset, resolvedEditorChrome]
+  );
+  const editorSurfaceMode = useMemo<'light' | 'dark'>(() => {
+    if (editorThemePreset === 'paper-light') return 'light';
+    if (editorThemePreset === 'graphite-dark') return 'dark';
+    return resolvedEditorChrome;
+  }, [editorThemePreset, resolvedEditorChrome]);
+  const editorThemeLabel = useMemo(() => {
+    if (editorThemePreset === 'paper-light') return 'Paper Light';
+    if (editorThemePreset === 'graphite-dark') return 'Graphite Dark';
+    if (editorThemePreset === 'classic-vs') return 'Classic VS';
+    return resolvedEditorChrome === 'dark' ? 'Natural Dark' : 'Natural Light';
+  }, [editorThemePreset, resolvedEditorChrome]);
   const lineCount = editorContent ? editorContent.split('\n').length : 0;
   const charCount = editorContent.length;
 
@@ -170,6 +211,60 @@ function CodeRunner() {
     } catch (error) {
       console.error(`Failed to save code preference (${key}):`, error);
     }
+  }, []);
+
+  const handleEditorBeforeMount = useCallback((monaco: typeof Monaco) => {
+    monaco.editor.defineTheme('academia-paper', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '8A96A8', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '356B9A' },
+        { token: 'type.identifier', foreground: '2A6888' },
+        { token: 'identifier', foreground: '2E3C4D' },
+        { token: 'number', foreground: 'A46834' },
+        { token: 'string', foreground: '9C4C42' },
+        { token: 'delimiter', foreground: '7A8595' },
+      ],
+      colors: {
+        'editor.background': '#F6F7F4',
+        'editor.foreground': '#1F2A36',
+        'editor.lineHighlightBackground': '#ECEEEA',
+        'editorLineNumber.foreground': '#97A2AF',
+        'editorLineNumber.activeForeground': '#355167',
+        'editor.selectionBackground': '#C7D6E533',
+        'editor.inactiveSelectionBackground': '#D9E2EC33',
+        'editorCursor.foreground': '#356B9A',
+        'editorIndentGuide.background1': '#D6DCE4',
+        'editorIndentGuide.activeBackground1': '#AEB8C6',
+      },
+    });
+
+    monaco.editor.defineTheme('academia-graphite', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '7A8597', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '8AB4DD' },
+        { token: 'type.identifier', foreground: '79A7CF' },
+        { token: 'identifier', foreground: 'D5DEE8' },
+        { token: 'number', foreground: 'CFA66F' },
+        { token: 'string', foreground: 'D69582' },
+        { token: 'delimiter', foreground: '9FAABD' },
+      ],
+      colors: {
+        'editor.background': '#1C1F25',
+        'editor.foreground': '#D9E1EB',
+        'editor.lineHighlightBackground': '#232831',
+        'editorLineNumber.foreground': '#778296',
+        'editorLineNumber.activeForeground': '#D5DFEB',
+        'editor.selectionBackground': '#5C779F40',
+        'editor.inactiveSelectionBackground': '#4C627F30',
+        'editorCursor.foreground': '#8AB4DD',
+        'editorIndentGuide.background1': '#303744',
+        'editorIndentGuide.activeBackground1': '#515C6F',
+      },
+    });
   }, []);
 
   const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<WorkspaceFileItem[]> => {
@@ -260,12 +355,13 @@ function CodeRunner() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const [recentRaw, lastFolder, fontSizeRaw, workspaceVisibleRaw, outputVisibleRaw] = await Promise.all([
+        const [recentRaw, lastFolder, fontSizeRaw, workspaceVisibleRaw, outputVisibleRaw, themePresetRaw] = await Promise.all([
           window.electronAPI.settings.get('codeRecentFiles'),
           window.electronAPI.settings.get('codeWorkspaceFolder'),
           window.electronAPI.settings.get('fontSize'),
           window.electronAPI.settings.get('codeWorkspaceVisible'),
           window.electronAPI.settings.get('codeOutputVisible'),
+          window.electronAPI.settings.get('codeEditorThemePreset'),
         ]);
 
         if (recentRaw) {
@@ -289,6 +385,7 @@ function CodeRunner() {
 
         setShowWorkspace(parseBooleanSetting(workspaceVisibleRaw, true));
         setShowOutput(parseBooleanSetting(outputVisibleRaw, true));
+        setEditorThemePreset(normalizeCodeEditorThemePreset(themePresetRaw));
       } catch (error) {
         console.error('Failed to initialize code workspace:', error);
       }
@@ -305,6 +402,16 @@ function CodeRunner() {
 
     observer.observe(target, { attributes: true, attributeFilter: ['data-editor-chrome'] });
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handleThemePresetChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ preset?: CodeEditorThemePreset }>;
+      setEditorThemePreset(normalizeCodeEditorThemePreset(customEvent.detail?.preset));
+    };
+
+    window.addEventListener('editor-theme-preset-change', handleThemePresetChange as EventListener);
+    return () => window.removeEventListener('editor-theme-preset-change', handleThemePresetChange as EventListener);
   }, []);
 
   const closeFileTab = useCallback((filePath: string) => {
@@ -561,6 +668,13 @@ function CodeRunner() {
     });
   }, [saveCodePreference]);
 
+  const handleThemePresetSelect = useCallback((value: string) => {
+    const nextPreset = normalizeCodeEditorThemePreset(value);
+    setEditorThemePreset(nextPreset);
+    void saveCodePreference('codeEditorThemePreset', nextPreset);
+    window.dispatchEvent(new CustomEvent('editor-theme-preset-change', { detail: { preset: nextPreset } }));
+  }, [saveCodePreference]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
@@ -590,7 +704,11 @@ function CodeRunner() {
   }, [handleManualSave, handleNewFile, handleOpenFile, handleRun, handleSaveAs]);
 
   return (
-    <div className="code-page">
+    <div
+      className="code-page"
+      data-editor-theme={editorThemePreset}
+      data-editor-surface-mode={editorSurfaceMode}
+    >
       <div className="code-header">
         <div className="code-heading">
           <h1 className="page-title">代码工作台</h1>
@@ -601,6 +719,17 @@ function CodeRunner() {
             <Select size="small" value={language} onChange={handleLanguageChange} className="code-language-select">
               <Select.Option value="java">Java ☕</Select.Option>
               <Select.Option value="python">Python 🐍</Select.Option>
+            </Select>
+            <Select
+              size="small"
+              value={editorThemePreset}
+              onChange={handleThemePresetSelect}
+              className="code-theme-select"
+            >
+              <Select.Option value="auto-natural">自然主题</Select.Option>
+              <Select.Option value="paper-light">Paper Light</Select.Option>
+              <Select.Option value="graphite-dark">Graphite Dark</Select.Option>
+              <Select.Option value="classic-vs">Classic VS</Select.Option>
             </Select>
             <Button size="small" className="code-icon-btn" icon={<IconPlus />} onClick={handleNewFile} title="新建" aria-label="新建" />
             <Button
@@ -680,6 +809,7 @@ function CodeRunner() {
           <span className={`page-context-pill ${isRunning ? 'warning' : 'success'}`}>{isRunning ? '运行中' : '待运行'}</span>
           <span className="page-context-pill accent">{showWorkspace ? '工作区显示' : '工作区隐藏'}</span>
           <span className="page-context-pill">{showOutput ? '输出区显示' : '输出区隐藏'}</span>
+          <span className="page-context-pill">{editorThemeLabel}</span>
         </div>
       </div>
 
@@ -744,15 +874,25 @@ function CodeRunner() {
               <Editor
                 height="100%"
                 language={language}
-                theme={resolvedEditorChrome === 'light' ? 'vs' : 'vs-dark'}
+                theme={monacoTheme}
+                beforeMount={handleEditorBeforeMount}
                 value={editorContent}
                 onChange={(value) => handleEditorChange(value || '')}
                 options={{
                   minimap: { enabled: false },
                   fontSize: editorFontSize,
+                  lineHeight: Math.round(editorFontSize * 1.68),
+                  fontLigatures: true,
                   lineNumbers: 'on',
                   automaticLayout: true,
                   scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  cursorBlinking: 'smooth',
+                  renderLineHighlight: 'line',
+                  padding: {
+                    top: 10,
+                    bottom: 10,
+                  },
                 }}
               />
             </div>

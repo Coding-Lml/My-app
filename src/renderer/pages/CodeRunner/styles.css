@@ -12,20 +12,52 @@
   gap: 12px;
 }
 
-[data-editor-chrome='light'] .code-page {
-  --editor-chrome-bg: #eceff3;
-  --editor-chrome-bg-strong: #e2e7ee;
-  --editor-chrome-border: #c7d0dc;
-  --editor-chrome-text: #2e3c4d;
-  --editor-chrome-muted: #66778b;
+.code-page[data-editor-surface-mode='light'] {
+  --editor-chrome-bg: #f0f2ef;
+  --editor-chrome-bg-strong: #e7ebe7;
+  --editor-chrome-border: #ccd5cf;
+  --editor-chrome-text: #2e3a44;
+  --editor-chrome-muted: #6a7986;
 }
 
-[data-editor-chrome='dark'] .code-page {
-  --editor-chrome-bg: #162434;
-  --editor-chrome-bg-strong: #1a2c42;
-  --editor-chrome-border: #2c4560;
-  --editor-chrome-text: #dce9f6;
-  --editor-chrome-muted: #9eb4c8;
+.code-page[data-editor-surface-mode='dark'] {
+  --editor-chrome-bg: #1c2026;
+  --editor-chrome-bg-strong: #222831;
+  --editor-chrome-border: #303843;
+  --editor-chrome-text: #d6deea;
+  --editor-chrome-muted: #90a0b4;
+}
+
+.code-page[data-editor-theme='paper-light'] {
+  --editor-chrome-bg: #f3f3ee;
+  --editor-chrome-bg-strong: #ebebe5;
+  --editor-chrome-border: #d5d7ce;
+  --editor-chrome-text: #36424d;
+  --editor-chrome-muted: #74818d;
+}
+
+.code-page[data-editor-theme='graphite-dark'] {
+  --editor-chrome-bg: #1a1d23;
+  --editor-chrome-bg-strong: #20242c;
+  --editor-chrome-border: #2d3440;
+  --editor-chrome-text: #d7e0eb;
+  --editor-chrome-muted: #8d9eb3;
+}
+
+.code-page[data-editor-theme='classic-vs'][data-editor-surface-mode='light'] {
+  --editor-chrome-bg: #f4f4f4;
+  --editor-chrome-bg-strong: #ececec;
+  --editor-chrome-border: #d5d5d5;
+  --editor-chrome-text: #333333;
+  --editor-chrome-muted: #666666;
+}
+
+.code-page[data-editor-theme='classic-vs'][data-editor-surface-mode='dark'] {
+  --editor-chrome-bg: #252526;
+  --editor-chrome-bg-strong: #2d2d30;
+  --editor-chrome-border: #3c3c3c;
+  --editor-chrome-text: #cccccc;
+  --editor-chrome-muted: #9f9f9f;
 }
 
 .code-header {
@@ -152,6 +184,10 @@
 
 .code-language-select {
   width: 116px;
+}
+
+.code-theme-select {
+  width: 148px;
 }
 
 .code-context-bar {
@@ -330,9 +366,12 @@
   min-width: 0;
   height: 100%;
   border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--editor-chrome-border) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-base) 84%, transparent);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: border-color var(--motion-base), background var(--motion-base);
 }
 
 .editor-card .arco-card-body {
@@ -357,6 +396,7 @@
   padding: 0 8px;
   gap: 4px;
   overflow-x: auto;
+  transition: border-color var(--motion-base), background var(--motion-base);
 }
 
 .vscode-tabs .tab {
@@ -371,9 +411,17 @@
   transition: background var(--motion-fast), color var(--motion-fast);
 }
 
+.vscode-tabs .tab:hover {
+  background: color-mix(in srgb, var(--editor-chrome-bg-strong) 56%, transparent);
+  color: var(--editor-chrome-text);
+}
+
 .vscode-tabs .tab.active {
   background: color-mix(in srgb, var(--editor-chrome-bg-strong) 84%, transparent);
   color: var(--editor-chrome-text);
+  box-shadow:
+    inset 0 -1px 0 color-mix(in srgb, var(--editor-chrome-border) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--accent-primary) 34%, transparent);
 }
 
 .vscode-tabs .tab-title {
@@ -403,6 +451,8 @@
   padding: 0 12px;
   color: var(--editor-chrome-muted);
   font-size: 12px;
+  letter-spacing: 0.1px;
+  transition: border-color var(--motion-base), background var(--motion-base), color var(--motion-base);
 }
 
 .vscode-statusbar .status-left,
