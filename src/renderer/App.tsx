@@ -6,8 +6,8 @@ import React, { Suspense } from 'react';
 import CommandPalette from './components/CommandPalette';
 import BrandMark from './components/BrandMark';
 import { MENU_ITEMS } from './config/navigation';
-import { normalizeFontFamily, resolveFontFamilyStack } from './config/fontFamily';
-import { ResolvedTheme, ThemeMode } from './types/theme';
+import { normalizeFontFamily, resolveFontFamilyRoles } from './config/fontFamily';
+import { EditorChromeTheme, ResolvedTheme, ThemeMode, UiDensity } from './types/theme';
 import './styles/global.css';
 
 const Notes = React.lazy(() => import('./pages/Notes'));
@@ -21,6 +21,14 @@ const StudyPlan = React.lazy(() => import('./pages/StudyPlan'));
 const MenuItem = Menu.Item;
 const { Sider, Content } = Layout;
 
+const normalizeUiDensity = (value: string | null | undefined): UiDensity => {
+  return value === 'compact' ? 'compact' : 'comfortable';
+};
+
+const normalizeEditorChromeTheme = (value: string | null | undefined): EditorChromeTheme => {
+  return value === 'light' || value === 'dark' ? value : 'auto';
+};
+
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,6 +36,8 @@ function App() {
   const [selectedKey, setSelectedKey] = useState(location.pathname);
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+  const [uiDensity, setUiDensity] = useState<UiDensity>('comfortable');
+  const [editorChromeTheme, setEditorChromeTheme] = useState<EditorChromeTheme>('auto');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   useEffect(() => {
@@ -79,8 +89,11 @@ function App() {
 
   const applyFontFamily = useCallback((value: string | null | undefined) => {
     const normalized = normalizeFontFamily(value);
+    const roles = resolveFontFamilyRoles(normalized);
     document.documentElement.setAttribute('data-font-family', normalized);
-    document.documentElement.style.setProperty('--app-font-family', resolveFontFamilyStack(normalized));
+    document.documentElement.style.setProperty('--app-font-family', roles.body);
+    document.documentElement.style.setProperty('--app-font-display-family', roles.display);
+    document.documentElement.style.setProperty('--app-font-mono-family', roles.mono);
   }, []);
 
   useEffect(() => {
@@ -95,6 +108,34 @@ function App() {
 
     void loadFontFamily();
   }, [applyFontFamily]);
+
+  useEffect(() => {
+    const loadUiPreferences = async () => {
+      try {
+        const [savedDensity, savedEditorChromeTheme] = await Promise.all([
+          window.electronAPI?.settings?.get('uiDensity'),
+          window.electronAPI?.settings?.get('editorChromeTheme'),
+        ]);
+
+        setUiDensity(normalizeUiDensity(savedDensity));
+        setEditorChromeTheme(normalizeEditorChromeTheme(savedEditorChromeTheme));
+      } catch (error) {
+        console.error('Failed to load UI preferences:', error);
+      }
+    };
+
+    void loadUiPreferences();
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-ui-density', uiDensity);
+  }, [uiDensity]);
+
+  useEffect(() => {
+    const resolvedEditorChrome = editorChromeTheme === 'auto' ? resolvedTheme : editorChromeTheme;
+    document.documentElement.setAttribute('data-editor-chrome-mode', editorChromeTheme);
+    document.documentElement.setAttribute('data-editor-chrome', resolvedEditorChrome);
+  }, [editorChromeTheme, resolvedTheme]);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -131,6 +172,27 @@ function App() {
     return () => window.removeEventListener('app-font-family-change', handleFontFamilyChange as EventListener);
   }, [applyFontFamily]);
 
+  useEffect(() => {
+    const handleUiDensityChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ density?: UiDensity }>;
+      setUiDensity(normalizeUiDensity(customEvent.detail?.density));
+    };
+
+    window.addEventListener('app-ui-density-change', handleUiDensityChange as EventListener);
+    return () => window.removeEventListener('app-ui-density-change', handleUiDensityChange as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const handleEditorChromeThemeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: EditorChromeTheme }>;
+      setEditorChromeTheme(normalizeEditorChromeTheme(customEvent.detail?.mode));
+    };
+
+    window.addEventListener('editor-chrome-theme-change', handleEditorChromeThemeChange as EventListener);
+    return () =>
+      window.removeEventListener('editor-chrome-theme-change', handleEditorChromeThemeChange as EventListener);
+  }, []);
+
   const toggleTheme = useCallback(() => {
     const nextMode: ThemeMode = resolvedTheme === 'light' ? 'dark' : 'light';
     void applyTheme(nextMode, true);
@@ -154,7 +216,7 @@ function App() {
   };
 
   return (
-    <div className={`app-shell ${collapsed ? 'is-collapsed' : ''}`}>
+    <div className={`app-shell ${collapsed ? 'is-collapsed' : ''} ${uiDensity === 'compact' ? 'is-compact' : ''}`}>
       <Layout className="layout">
         <Sider
           collapsible

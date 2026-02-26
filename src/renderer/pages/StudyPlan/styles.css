@@ -2,49 +2,51 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
 .plan-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .plan-content {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   flex: 1;
   overflow: hidden;
 }
 
 .plans-list-card {
-  width: 380px;
-  border-radius: 12px;
+  width: 360px;
+  border-radius: var(--radius-md);
   overflow: auto;
 }
 
 .plans-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .plan-item {
-  padding: 16px;
-  border-radius: 8px;
-  background: var(--surface-soft);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
+  background: color-mix(in srgb, var(--surface-emphasis) 82%, transparent);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--motion-fast);
 }
 
 .plan-item:hover {
-  background: var(--surface-soft-hover);
+  background: var(--surface-panel-hover);
+  border-color: var(--border-default);
 }
 
 .plan-item.selected {
-  background: var(--accent-soft);
-  border-left: 3px solid var(--accent-strong);
+  background: var(--accent-primary-soft);
+  border-left: 3px solid var(--accent-primary);
 }
 
 .plan-item-header {
@@ -59,13 +61,14 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .plan-item-actions {
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-fast);
 }
 
 .plan-item:hover .plan-item-actions {
@@ -76,7 +79,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
   margin-bottom: 12px;
 }
@@ -84,7 +87,7 @@
 .plan-item-progress {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .plan-item-progress .progress-text {
@@ -95,7 +98,7 @@
 
 .plan-detail-card {
   flex: 1;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: auto;
 }
 
@@ -120,14 +123,15 @@
 .detail-info {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .detail-info .info-item {
   padding: 12px;
-  background: var(--surface-soft);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-emphasis) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .detail-info .label {
@@ -140,6 +144,7 @@
 .detail-info .value {
   font-size: 14px;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .detail-progress {
@@ -147,7 +152,7 @@
 }
 
 .milestones-section {
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
   padding-top: 20px;
 }
 
@@ -173,13 +178,13 @@
   display: flex;
   align-items: center;
   padding: 12px;
-  background: var(--surface-soft);
-  border-radius: 8px;
-  transition: all 0.2s;
+  background: color-mix(in srgb, var(--surface-emphasis) 82%, transparent);
+  border-radius: var(--radius-sm);
+  transition: all var(--motion-fast);
 }
 
 .milestone-item.completed {
-  background: var(--success-soft);
+  background: var(--status-success-soft);
 }
 
 .milestone-item.completed .milestone-title {
@@ -193,7 +198,7 @@
 }
 
 .milestone-check.checked {
-  color: var(--success-strong);
+  color: var(--status-success);
 }
 
 .milestone-content {
@@ -231,4 +236,19 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .plan-content {
+    flex-direction: column;
+  }
+
+  .plans-list-card {
+    width: 100%;
+    max-height: 320px;
+  }
+
+  .detail-info {
+    grid-template-columns: 1fr;
+  }
 }

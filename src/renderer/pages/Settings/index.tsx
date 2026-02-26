@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Switch, InputNumber, Button, Message, Divider, Space, Modal } from '@arco-design/web-react';
 import { IconSave, IconDownload, IconUpload } from '@arco-design/web-react/icon';
 import { DEFAULT_FONT_FAMILY, FONT_FAMILY_OPTIONS, FontFamilyKey, normalizeFontFamily } from '../../config/fontFamily';
-import { ThemeMode } from '../../types/theme';
+import { EditorChromeTheme, ThemeMode, UiDensity } from '../../types/theme';
 import { summarizeBackupImport } from '@shared/utils/backup';
 import type { RuntimeCheckResult } from '@shared/types/ipc';
 import './styles.css';
@@ -10,6 +10,8 @@ import './styles.css';
 interface SettingsState {
   theme: ThemeMode;
   fontFamily: FontFamilyKey;
+  uiDensity: UiDensity;
+  editorChromeTheme: EditorChromeTheme;
   fontSize: string;
   javaPath: string;
   pythonPath: string;
@@ -18,13 +20,18 @@ interface SettingsState {
 }
 
 type CoreSettings = Partial<
-  Record<'theme' | 'fontFamily' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal', string>
+  Record<
+    'theme' | 'fontFamily' | 'uiDensity' | 'editorChromeTheme' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal',
+    string
+  >
 >;
 
 function Settings() {
   const [settings, setSettings] = useState<SettingsState>({
     theme: 'light',
     fontFamily: DEFAULT_FONT_FAMILY,
+    uiDensity: 'comfortable',
+    editorChromeTheme: 'auto',
     fontSize: '14',
     javaPath: '',
     pythonPath: '',
@@ -43,10 +50,17 @@ function Settings() {
         const data: CoreSettings = await window.electronAPI.settings.getAll();
         const theme: ThemeMode = data.theme === 'dark' || data.theme === 'auto' ? data.theme : 'light';
         const fontFamily: FontFamilyKey = normalizeFontFamily(data.fontFamily);
+        const uiDensity: UiDensity = data.uiDensity === 'compact' ? 'compact' : 'comfortable';
+        const editorChromeTheme: EditorChromeTheme =
+          data.editorChromeTheme === 'light' || data.editorChromeTheme === 'dark'
+            ? data.editorChromeTheme
+            : 'auto';
         const autoSave: 'true' | 'false' = data.autoSave === 'false' ? 'false' : 'true';
         setSettings({
           theme,
           fontFamily,
+          uiDensity,
+          editorChromeTheme,
           fontSize: data.fontSize || '14',
           javaPath: data.javaPath || '',
           pythonPath: data.pythonPath || '',
@@ -66,6 +80,8 @@ function Settings() {
     try {
       await window.electronAPI.settings.set('theme', settings.theme, 'appearance');
       await window.electronAPI.settings.set('fontFamily', settings.fontFamily, 'appearance');
+      await window.electronAPI.settings.set('uiDensity', settings.uiDensity, 'appearance');
+      await window.electronAPI.settings.set('editorChromeTheme', settings.editorChromeTheme, 'code');
       await window.electronAPI.settings.set('fontSize', settings.fontSize, 'editor');
       await window.electronAPI.settings.set('javaPath', settings.javaPath, 'code');
       await window.electronAPI.settings.set('pythonPath', settings.pythonPath, 'code');
@@ -73,6 +89,10 @@ function Settings() {
       await window.electronAPI.settings.set('dailyGoal', settings.dailyGoal, 'study');
       window.dispatchEvent(new CustomEvent('theme-mode-change', { detail: { mode: settings.theme } }));
       window.dispatchEvent(new CustomEvent('app-font-family-change', { detail: { fontFamily: settings.fontFamily } }));
+      window.dispatchEvent(new CustomEvent('app-ui-density-change', { detail: { density: settings.uiDensity } }));
+      window.dispatchEvent(
+        new CustomEvent('editor-chrome-theme-change', { detail: { mode: settings.editorChromeTheme } })
+      );
       Message.success('设置已保存');
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -217,6 +237,17 @@ function Settings() {
                 ))}
               </Select>
             </Form.Item>
+
+            <Form.Item label="界面密度">
+              <Select
+                value={settings.uiDensity}
+                onChange={(value) => setSettings({ ...settings, uiDensity: value as UiDensity })}
+                className="settings-select-md"
+              >
+                <Select.Option value="comfortable">舒适</Select.Option>
+                <Select.Option value="compact">紧凑</Select.Option>
+              </Select>
+            </Form.Item>
           </Form>
         </Card>
 
@@ -244,6 +275,18 @@ function Settings() {
                 />
                 <span className="settings-help">编辑笔记时自动保存</span>
               </div>
+            </Form.Item>
+
+            <Form.Item label="代码工作台配色">
+              <Select
+                value={settings.editorChromeTheme}
+                onChange={(value) => setSettings({ ...settings, editorChromeTheme: value as EditorChromeTheme })}
+                className="settings-select-md"
+              >
+                <Select.Option value="auto">跟随主题</Select.Option>
+                <Select.Option value="light">浅色</Select.Option>
+                <Select.Option value="dark">深色</Select.Option>
+              </Select>
             </Form.Item>
           </Form>
         </Card>

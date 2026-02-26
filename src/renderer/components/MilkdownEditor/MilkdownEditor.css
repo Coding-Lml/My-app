@@ -4,7 +4,7 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  background: var(--surface-card, #fff);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
 }
 
 .tiptap-editor-content {
@@ -26,18 +26,18 @@
 
 .tiptap-source-fallback-tip {
   font-size: 12px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
 }
 
 .tiptap-source-fallback {
   flex: 1;
   min-height: 0;
   width: 100%;
-  border: 1px solid var(--border-default, #d1d5db);
-  border-radius: 8px;
-  background: var(--surface-soft, #f7f9fb);
-  color: var(--text-primary, #111827);
-  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, Menlo, monospace;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-emphasis);
+  color: var(--text-primary);
+  font-family: var(--app-font-mono-family);
   font-size: 13px;
   line-height: 1.65;
   padding: 12px 14px;
@@ -46,8 +46,8 @@
 }
 
 .tiptap-source-fallback:focus {
-  border-color: var(--accent-strong, #5a8e7b);
-  box-shadow: 0 0 0 2px var(--accent-soft, rgba(90, 142, 123, 0.14));
+  border-color: var(--accent-primary);
+  box-shadow: var(--focus-ring-inline);
 }
 
 .tiptap {
@@ -55,7 +55,7 @@
   outline: none;
   font-size: 15px;
   line-height: 1.8;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -64,12 +64,21 @@
   outline: none;
 }
 
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4,
+.tiptap h5,
+.tiptap h6 {
+  font-family: var(--app-font-display-family);
+}
+
 .tiptap h1 {
   font-size: 2em;
-  font-weight: 600;
+  font-weight: 620;
   margin: 1.5em 0 0.67em;
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--border-default, #eaecef);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .tiptap h1:first-child {
@@ -78,10 +87,10 @@
 
 .tiptap h2 {
   font-size: 1.5em;
-  font-weight: 600;
+  font-weight: 620;
   margin: 1.5em 0 0.83em;
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--border-default, #eaecef);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .tiptap h3 {
@@ -106,7 +115,7 @@
   font-size: 0.85em;
   font-weight: 600;
   margin: 1.5em 0 2em;
-  color: var(--text-muted, #6a737d);
+  color: var(--text-muted);
 }
 
 .tiptap p {
@@ -132,29 +141,29 @@
 }
 
 .tiptap blockquote {
-  border-left: 4px solid var(--border-default, #dfe2e5);
+  border-left: 4px solid var(--border-default);
   padding-left: 1em;
   margin: 1em 0;
-  color: var(--text-muted, #6a737d);
+  color: var(--text-muted);
 }
 
 .tiptap code {
-  background: var(--surface-soft-hover, rgba(27, 31, 35, 0.05));
+  background: var(--surface-panel-hover);
   border-radius: 3px;
   font-size: 85%;
   padding: 0.2em 0.4em;
-  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-family: var(--app-font-mono-family);
 }
 
 .tiptap pre {
-  background: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--code-bg) 88%, transparent);
+  color: var(--code-text);
+  border: 1px solid color-mix(in srgb, var(--code-border) 88%, transparent);
+  border-radius: var(--radius-sm);
   padding: 14px 16px;
   overflow-x: auto;
   margin: 1em 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-raised) 35%, transparent);
 }
 
 .tiptap pre code {
@@ -163,18 +172,18 @@
   padding: 0;
   font-size: 13px;
   line-height: 1.7;
-  font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-family: var(--app-font-mono-family);
 }
 
 .tiptap pre code .hljs-comment,
 .tiptap pre code .hljs-quote {
-  color: #94a3b8;
+  color: color-mix(in srgb, var(--code-muted) 88%, transparent);
 }
 
 .tiptap pre code .hljs-keyword,
 .tiptap pre code .hljs-selector-tag,
 .tiptap pre code .hljs-subst {
-  color: #c084fc;
+  color: color-mix(in srgb, var(--accent-primary) 88%, white 12%);
 }
 
 .tiptap pre code .hljs-string,
@@ -186,7 +195,7 @@
 .tiptap pre code .hljs-template-variable,
 .tiptap pre code .hljs-type,
 .tiptap pre code .hljs-addition {
-  color: #86efac;
+  color: color-mix(in srgb, var(--status-success) 86%, white 14%);
 }
 
 .tiptap pre code .hljs-number,
@@ -195,30 +204,27 @@
 .tiptap pre code .hljs-variable,
 .tiptap pre code .hljs-meta,
 .tiptap pre code .hljs-link {
-  color: #fca5a5;
+  color: color-mix(in srgb, var(--accent-secondary) 86%, white 14%);
 }
 
 .tiptap pre code .hljs-built_in,
 .tiptap pre code .hljs-doctag,
 .tiptap pre code .hljs-name,
 .tiptap pre code .hljs-selector-id,
-.tiptap pre code .hljs-selector-class {
-  color: #93c5fd;
-}
-
+.tiptap pre code .hljs-selector-class,
 .tiptap pre code .hljs-regexp,
 .tiptap pre code .hljs-emphasis {
-  color: #fcd34d;
+  color: color-mix(in srgb, var(--status-info) 86%, white 14%);
 }
 
 .tiptap pre code .hljs-strong {
-  color: #f8fafc;
+  color: color-mix(in srgb, var(--code-text) 92%, white 8%);
 }
 
 .tiptap a {
-  color: var(--accent-strong, #0366d6);
+  color: var(--accent-primary);
   text-decoration: none;
-  border-bottom: 1px dotted var(--accent-strong, #0366d6);
+  border-bottom: 1px dotted color-mix(in srgb, var(--accent-primary) 75%, transparent);
 }
 
 .tiptap a:hover {
@@ -228,15 +234,15 @@
 .tiptap img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin: 1em 0;
   cursor: pointer;
   display: inline-block;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--motion-fast);
 }
 
 .tiptap img:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-raised);
 }
 
 .tiptap table {
@@ -249,19 +255,19 @@
 
 .tiptap th,
 .tiptap td {
-  border: 1px solid var(--border-default, #dfe2e5);
+  border: 1px solid var(--border-default);
   padding: 8px 12px;
   min-width: 80px;
 }
 
 .tiptap th {
-  background: var(--surface-soft, #f6f8fa);
+  background: var(--surface-emphasis);
   font-weight: 600;
 }
 
 .tiptap hr {
   border: none;
-  border-top: 2px solid var(--border-default, #e1e4e8);
+  border-top: 2px solid var(--border-default);
   margin: 2em 0;
 }
 
@@ -292,17 +298,17 @@
 }
 
 .tiptap-editor-content::-webkit-scrollbar-thumb {
-  background: var(--border-strong, #d1d5da);
-  border-radius: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-xs);
 }
 
 .tiptap-editor-content::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong, #9ca3af);
+  background: var(--border-default);
 }
 
 .tiptap .heading-jump-highlight {
-  background: var(--accent-soft, rgba(24, 144, 255, 0.16));
-  border-radius: 4px;
+  background: var(--accent-primary-soft);
+  border-radius: var(--radius-xs);
   transition: background 0.8s ease;
 }
 
@@ -321,7 +327,7 @@
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -333,7 +339,7 @@
   font-size: 32px;
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-fast);
 }
 
 .image-preview-close:hover {

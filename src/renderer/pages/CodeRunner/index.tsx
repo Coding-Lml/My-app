@@ -103,6 +103,13 @@ function parseBooleanSetting(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+function getResolvedEditorChrome(): 'light' | 'dark' {
+  if (typeof document === 'undefined') {
+    return 'dark';
+  }
+  return document.documentElement.getAttribute('data-editor-chrome') === 'light' ? 'light' : 'dark';
+}
+
 function CodeRunner() {
   const [openedFolder, setOpenedFolder] = useState<string | null>(null);
   const [fileTree, setFileTree] = useState<WorkspaceFileItem[]>([]);
@@ -117,6 +124,7 @@ function CodeRunner() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [editorFontSize, setEditorFontSize] = useState(14);
+  const [resolvedEditorChrome, setResolvedEditorChrome] = useState<'light' | 'dark'>(getResolvedEditorChrome);
   const [showWorkspace, setShowWorkspace] = useState(true);
   const [showOutput, setShowOutput] = useState(true);
 
@@ -128,6 +136,7 @@ function CodeRunner() {
   const editorContent = currentFile ? currentFile.content : draftFile.content;
   const activeFileName = currentFile ? currentFile.name : draftFile.name;
   const isCurrentModified = currentFile ? currentFile.isModified : draftFile.isModified;
+  const activeContextPath = currentFilePath || (openedFolder ? `${openedFolder}/${draftFile.name}` : draftFile.name);
   const lineCount = editorContent ? editorContent.split('\n').length : 0;
   const charCount = editorContent.length;
 
@@ -287,6 +296,16 @@ function CodeRunner() {
 
     void initialize();
   }, [loadFolder]);
+
+  useEffect(() => {
+    const target = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setResolvedEditorChrome(getResolvedEditorChrome());
+    });
+
+    observer.observe(target, { attributes: true, attributeFilter: ['data-editor-chrome'] });
+    return () => observer.disconnect();
+  }, []);
 
   const closeFileTab = useCallback((filePath: string) => {
     setOpenedFiles((prev) => {
@@ -652,6 +671,18 @@ function CodeRunner() {
         </div>
       </div>
 
+      <div className="page-context-bar code-context-bar">
+        <div className="page-context-main">
+          <span className="page-context-label">Workspace Context</span>
+          <span className="page-context-value" title={activeContextPath}>{activeContextPath}</span>
+        </div>
+        <div className="page-context-metrics">
+          <span className={`page-context-pill ${isRunning ? 'warning' : 'success'}`}>{isRunning ? '运行中' : '待运行'}</span>
+          <span className="page-context-pill accent">{showWorkspace ? '工作区显示' : '工作区隐藏'}</span>
+          <span className="page-context-pill">{showOutput ? '输出区显示' : '输出区隐藏'}</span>
+        </div>
+      </div>
+
       <div className={`code-layout ${showWorkspace ? '' : 'workspace-hidden'}`}>
         {showWorkspace ? (
           <WorkspaceSidebar
@@ -713,7 +744,7 @@ function CodeRunner() {
               <Editor
                 height="100%"
                 language={language}
-                theme="vs-dark"
+                theme={resolvedEditorChrome === 'light' ? 'vs' : 'vs-dark'}
                 value={editorContent}
                 onChange={(value) => handleEditorChange(value || '')}
                 options={{

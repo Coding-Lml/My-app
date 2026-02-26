@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-height: 0;
 }
 
@@ -11,7 +11,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: 14px;
 }
 
 .skill-tree-heading {
@@ -42,9 +42,10 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--border-default) 84%, transparent);
+  background: color-mix(in srgb, var(--surface-base) 90%, transparent);
+  box-shadow: var(--shadow-flat);
 }
 
 .overall-progress-main {
@@ -68,16 +69,17 @@
 
 .skill-tree-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.tree-card {
+.tree-card,
+.detail-card {
   min-height: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: auto;
 }
 
@@ -94,21 +96,21 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--motion-fast);
 }
 
 .skill-item:hover {
-  background: var(--surface-soft-hover);
-  border-color: var(--border-default);
+  background: var(--surface-panel-hover);
+  border-color: color-mix(in srgb, var(--border-subtle) 78%, transparent);
 }
 
 .skill-item.selected {
-  background: var(--accent-soft);
-  border-left: 3px solid var(--accent-strong);
-  border-color: color-mix(in srgb, var(--accent-strong) 35%, transparent);
+  background: var(--accent-primary-soft);
+  border-left: 3px solid var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 .skill-main {
@@ -120,7 +122,7 @@
 .expand-icon {
   font-size: 10px;
   color: var(--text-muted);
-  transition: transform 0.2s;
+  transition: transform var(--motion-fast);
   cursor: pointer;
   width: 16px;
   text-align: center;
@@ -144,15 +146,9 @@
 }
 
 .skill-children {
-  border-left: 1px dashed var(--border-default);
+  border-left: 1px dashed color-mix(in srgb, var(--border-default) 84%, transparent);
   margin-left: 20px;
   padding-left: 4px;
-}
-
-.detail-card {
-  min-height: 0;
-  border-radius: 12px;
-  overflow: auto;
 }
 
 .detail-card-placeholder .arco-empty {
@@ -165,7 +161,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 78%, transparent);
 }
 
 .detail-title {
@@ -202,15 +198,16 @@
 .detail-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
 .detail-stats .stat-item {
   text-align: center;
   padding: 12px;
-  background: var(--surface-soft);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-emphasis) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .stat-icon {
@@ -257,14 +254,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--surface-soft);
-  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-emphasis) 82%, transparent);
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--motion-fast);
 }
 
 .sub-skill-item:hover {
-  background: var(--surface-soft-hover);
+  background: var(--surface-panel-hover);
 }
 
 .sub-skill-name {
@@ -312,15 +309,15 @@
 }
 
 .dot.beginner {
-  background: var(--accent-strong);
+  background: var(--accent-primary);
 }
 
 .dot.intermediate {
-  background: var(--warn-strong);
+  background: var(--accent-secondary);
 }
 
 .dot.advanced {
-  background: var(--success-strong);
+  background: var(--status-success);
 }
 
 @media (max-width: 1200px) {

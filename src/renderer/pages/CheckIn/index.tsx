@@ -4,6 +4,7 @@ import {
   IconFire,
   IconClockCircle,
   IconCalendar,
+  IconCheckCircle,
   IconPlayCircle,
   IconPauseCircle,
 } from '@arco-design/web-react/icon';
@@ -206,6 +207,7 @@ function CheckIn() {
 
   const todayDuration = todayCheckIn?.duration || currentDuration;
   const progressPercent = Math.min((todayDuration / Math.max(1, dailyGoal)) * 100, 100);
+  const goalRemaining = Math.max(dailyGoal - todayDuration, 0);
 
   const statusText = isStudying ? '学习中' : todayDuration > 0 ? '今日已打卡' : '尚未开始';
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -214,93 +216,133 @@ function CheckIn() {
     <div className="checkin-page">
       <h1 className="page-title">学习打卡</h1>
 
-      <Card className="checkin-primary-card">
-        <div className="checkin-primary-header">
-          <div className="today-date">
-            <IconCalendar />
-            <span>{dayjs().format('YYYY年MM月DD日')} {weekdays[dayjs().day()]}</span>
-          </div>
-          <span className={`status-badge ${isStudying ? 'active' : todayDuration > 0 ? 'done' : 'idle'}`}>
+      <div className="page-context-bar">
+        <div className="page-context-main">
+          <span className="page-context-label">Today Deck</span>
+          <span className="page-context-value">{dayjs().format('YYYY年MM月DD日')} · 星期{weekdays[dayjs().day()]}</span>
+        </div>
+        <div className="page-context-metrics">
+          <span className={`page-context-pill ${isStudying ? 'accent' : todayDuration > 0 ? 'success' : 'warning'}`}>
             {statusText}
           </span>
+          <span className="page-context-pill accent">连续 {stats.consecutiveDays} 天</span>
+          <span className="page-context-pill warning">剩余 {goalRemaining} 分钟</span>
         </div>
+      </div>
 
-        <div className="timer-display">{formatDuration(todayDuration)}</div>
-        <div className="timer-hint">今日累计学习时长</div>
-
-        <div className="checkin-actions">
-          {isStudying ? (
-            <Button
-              type="primary"
-              status="danger"
-              size="large"
-              icon={<IconPauseCircle />}
-              onClick={handleEndStudy}
-            >
-              结束学习
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              size="large"
-              icon={<IconPlayCircle />}
-              onClick={handleStartStudy}
-            >
-              开始学习
-            </Button>
-          )}
-        </div>
-
-        <div className="goal-section">
-          <div className="goal-header">
-            <span>每日目标（分钟）</span>
-            <InputNumber
-              min={10}
-              max={720}
-              value={dailyGoal}
-              onChange={(value) => handleGoalChange(value as number)}
-              size="small"
-            />
+      <div className="checkin-deck">
+        <Card className="checkin-primary-card">
+          <div className="checkin-primary-header">
+            <div className="today-date">
+              <IconCalendar />
+              <span>{dayjs().format('YYYY年MM月DD日')} {weekdays[dayjs().day()]}</span>
+            </div>
+            <span className={`status-badge ${isStudying ? 'active' : todayDuration > 0 ? 'done' : 'idle'}`}>
+              {statusText}
+            </span>
           </div>
 
-          <div className="goal-progress-info">
-            <span>{todayDuration} / {dailyGoal} 分钟</span>
-            <span>{Math.round(progressPercent)}%</span>
-          </div>
-          <Progress percent={progressPercent} animation />
-          {progressPercent >= 100 && (
-            <div className="goal-achieved">今日目标已完成</div>
-          )}
-        </div>
-      </Card>
+          <div className="timer-display">{formatDuration(todayDuration)}</div>
+          <div className="timer-hint">今日累计学习时长</div>
 
-      <Card className="checkin-stats-card">
-        <div className="kpi-grid">
-          <div className="kpi-item">
-            <div className="kpi-icon fire"><IconFire /></div>
-            <div>
-              <div className="kpi-value">{stats.consecutiveDays}</div>
-              <div className="kpi-label">连续打卡</div>
+          <div className="checkin-actions">
+            {isStudying ? (
+              <Button
+                type="primary"
+                status="danger"
+                size="large"
+                icon={<IconPauseCircle />}
+                onClick={handleEndStudy}
+              >
+                结束学习
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                size="large"
+                icon={<IconPlayCircle />}
+                onClick={handleStartStudy}
+              >
+                开始学习
+              </Button>
+            )}
+          </div>
+
+          <div className="goal-section">
+            <div className="goal-header">
+              <span>每日目标（分钟）</span>
+              <InputNumber
+                min={10}
+                max={720}
+                value={dailyGoal}
+                onChange={(value) => handleGoalChange(value as number)}
+                size="small"
+              />
+            </div>
+
+            <div className="goal-progress-info">
+              <span>{todayDuration} / {dailyGoal} 分钟</span>
+              <span>{Math.round(progressPercent)}%</span>
+            </div>
+            <Progress percent={progressPercent} animation />
+            {progressPercent >= 100 && (
+              <div className="goal-achieved">今日目标已完成</div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="checkin-stats-card" title="学习概览">
+          <div className="kpi-grid">
+            <div className="kpi-item">
+              <div className="kpi-icon fire"><IconFire /></div>
+              <div>
+                <div className="kpi-value">{stats.consecutiveDays}</div>
+                <div className="kpi-label">连续打卡</div>
+              </div>
+            </div>
+
+            <div className="kpi-item">
+              <div className="kpi-icon calendar"><IconCalendar /></div>
+              <div>
+                <div className="kpi-value">{stats.totalDays}</div>
+                <div className="kpi-label">累计打卡</div>
+              </div>
+            </div>
+
+            <div className="kpi-item">
+              <div className="kpi-icon clock"><IconClockCircle /></div>
+              <div>
+                <div className="kpi-value">{formatDuration(stats.totalDuration)}</div>
+                <div className="kpi-label">累计学习</div>
+              </div>
+            </div>
+
+            <div className="kpi-item">
+              <div className="kpi-icon month"><IconCalendar /></div>
+              <div>
+                <div className="kpi-value">{stats.thisMonthDays}</div>
+                <div className="kpi-label">本月打卡</div>
+              </div>
+            </div>
+
+            <div className="kpi-item">
+              <div className="kpi-icon month-clock"><IconClockCircle /></div>
+              <div>
+                <div className="kpi-value">{formatDuration(stats.thisMonthDuration)}</div>
+                <div className="kpi-label">本月学习</div>
+              </div>
+            </div>
+
+            <div className="kpi-item">
+              <div className="kpi-icon tasks"><IconCheckCircle /></div>
+              <div>
+                <div className="kpi-value">{stats.totalTasks}</div>
+                <div className="kpi-label">完成任务</div>
+              </div>
             </div>
           </div>
-
-          <div className="kpi-item">
-            <div className="kpi-icon calendar"><IconCalendar /></div>
-            <div>
-              <div className="kpi-value">{stats.totalDays}</div>
-              <div className="kpi-label">累计打卡</div>
-            </div>
-          </div>
-
-          <div className="kpi-item">
-            <div className="kpi-icon clock"><IconClockCircle /></div>
-            <div>
-              <div className="kpi-value">{formatDuration(stats.totalDuration)}</div>
-              <div className="kpi-label">累计学习</div>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       <Card title="最近 26 周热力图" className="heatmap-card">
         <div className="heatmap-grid-wrapper">

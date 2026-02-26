@@ -9,7 +9,6 @@ import {
   Dropdown,
   Menu,
   Message,
-  Divider,
 } from '@arco-design/web-react';
 import {
   IconPlus,
@@ -1012,6 +1011,9 @@ function Notes() {
   };
 
   const sidebarTree = renderFileTree(fileTree);
+  const activeContextPath = currentFilePath || openedFolder || '尚未打开目录';
+  const editingModeLabel = focusMode ? '专注模式' : typewriterMode ? '打字机模式' : '标准模式';
+  const saveStateLabel = isSaving ? '保存中' : autoSaveEnabled ? '自动保存开启' : '自动保存关闭';
 
   return (
     <div className={`notes-page ${focusMode ? 'focus-mode' : ''}`} onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop}>
@@ -1027,42 +1029,61 @@ function Notes() {
         </div>
 
         <div className="header-right">
-          <Tooltip content="打开文件 (Cmd+O)">
-            <Button icon={<IconArchive />} onClick={handleOpenFile}>
-              <span className="header-action-label">打开</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="打开文件夹">
-            <Button icon={<IconFolder />} onClick={handleOpenFolder}>
-              <span className="header-action-label">文件夹</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="新建文件 (Cmd+N)">
-            <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)}>
-              <span className="header-action-label">新建</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="保存 (Cmd+S)">
-            <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving}>
-              <span className="header-action-label">保存</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="查找 (Cmd+F)">
-            <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
-          </Tooltip>
-          <Tooltip content="插入图片 (Shift+Cmd+I)">
-            <Button icon={<IconImage />} onClick={handleInsertImage} disabled={!currentFilePath} />
-          </Tooltip>
-          <Dropdown droplist={exportMenu} position="bottom">
-            <Button icon={<IconDownload />}>导出</Button>
-          </Dropdown>
-          <Divider type="vertical" />
-          <Tooltip content="侧边栏 (Cmd+B)">
-            <Button icon={<IconMenu />} onClick={() => setShowSidebar(!showSidebar)} />
-          </Tooltip>
-          <Dropdown droplist={settingsMenu} position="bottom">
-            <Button icon={<IconMore />} />
-          </Dropdown>
+          <div className="notes-action-group">
+            <Tooltip content="打开文件 (Cmd+O)">
+              <Button icon={<IconArchive />} onClick={handleOpenFile}>
+                <span className="header-action-label">打开</span>
+              </Button>
+            </Tooltip>
+            <Tooltip content="打开文件夹">
+              <Button icon={<IconFolder />} onClick={handleOpenFolder}>
+                <span className="header-action-label">文件夹</span>
+              </Button>
+            </Tooltip>
+            <Tooltip content="新建文件 (Cmd+N)">
+              <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)}>
+                <span className="header-action-label">新建</span>
+              </Button>
+            </Tooltip>
+            <Tooltip content="保存 (Cmd+S)">
+              <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving}>
+                <span className="header-action-label">保存</span>
+              </Button>
+            </Tooltip>
+          </div>
+
+          <div className="notes-action-group">
+            <Tooltip content="查找 (Cmd+F)">
+              <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
+            </Tooltip>
+            <Tooltip content="插入图片 (Shift+Cmd+I)">
+              <Button icon={<IconImage />} onClick={handleInsertImage} disabled={!currentFilePath} />
+            </Tooltip>
+            <Dropdown droplist={exportMenu} position="bottom">
+              <Button icon={<IconDownload />}>导出</Button>
+            </Dropdown>
+          </div>
+
+          <div className="notes-action-group notes-action-group-utility">
+            <Tooltip content="侧边栏 (Cmd+B)">
+              <Button icon={<IconMenu />} onClick={() => setShowSidebar(!showSidebar)} />
+            </Tooltip>
+            <Dropdown droplist={settingsMenu} position="bottom">
+              <Button icon={<IconMore />} />
+            </Dropdown>
+          </div>
+        </div>
+      </div>
+
+      <div className="page-context-bar notes-context-bar">
+        <div className="page-context-main">
+          <span className="page-context-label">Document Context</span>
+          <span className="page-context-value" title={activeContextPath}>{activeContextPath}</span>
+        </div>
+        <div className="page-context-metrics">
+          <span className={`page-context-pill ${isSaving ? 'warning' : 'success'}`}>{saveStateLabel}</span>
+          <span className="page-context-pill accent">{editingModeLabel}</span>
+          <span className="page-context-pill">{showOutline ? '大纲开启' : '大纲关闭'}</span>
         </div>
       </div>
 
