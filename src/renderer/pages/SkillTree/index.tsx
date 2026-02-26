@@ -44,6 +44,9 @@ const CATEGORY_ICONS: Record<string, string> = {
   '基础': '📚',
 };
 
+const DEFAULT_TREE_TITLE = 'Java后端开发技能树';
+const SKILL_TREE_TITLE_KEY = 'skillTreeTitle';
+
 function SkillTree() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
@@ -54,10 +57,8 @@ function SkillTree() {
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [newSkill, setNewSkill] = useState<{ name: string; category: string; parentId: number | null }>({ name: '', category: '', parentId: null });
   const [meta, setMeta] = useState<{ name: string; category: string; parentId: number | null }>({ name: '', category: '', parentId: null });
-
-  useEffect(() => {
-    loadSkills();
-  }, []);
+  const [treeTitle, setTreeTitle] = useState(DEFAULT_TREE_TITLE);
+  const [treeTitleDraft, setTreeTitleDraft] = useState(DEFAULT_TREE_TITLE);
 
   const loadSkills = async () => {
     try {
@@ -91,6 +92,49 @@ function SkillTree() {
       });
     } catch (error) {
       console.error('Failed to load skills:', error);
+    }
+  };
+
+  const loadTreeTitle = async () => {
+    try {
+      const saved = await window.electronAPI.settings.get(SKILL_TREE_TITLE_KEY);
+      if (typeof saved === 'string' && saved.trim()) {
+        const normalizedTitle = saved.trim();
+        setTreeTitle(normalizedTitle);
+        setTreeTitleDraft(normalizedTitle);
+      }
+    } catch (error) {
+      console.error('Failed to load skill tree title:', error);
+    }
+  };
+
+  useEffect(() => {
+    void loadSkills();
+    void loadTreeTitle();
+  }, []);
+
+  const handleSaveTreeTitle = async () => {
+    const normalizedTitle = (treeTitleDraft.trim() || DEFAULT_TREE_TITLE);
+    try {
+      await window.electronAPI.settings.set(SKILL_TREE_TITLE_KEY, normalizedTitle, 'study');
+      setTreeTitle(normalizedTitle);
+      setTreeTitleDraft(normalizedTitle);
+      Message.success('技能树标题已保存');
+    } catch (error) {
+      console.error('Failed to save skill tree title:', error);
+      Message.error('保存标题失败');
+    }
+  };
+
+  const handleResetTreeTitle = async () => {
+    try {
+      await window.electronAPI.settings.set(SKILL_TREE_TITLE_KEY, DEFAULT_TREE_TITLE, 'study');
+      setTreeTitle(DEFAULT_TREE_TITLE);
+      setTreeTitleDraft(DEFAULT_TREE_TITLE);
+      Message.success('已恢复默认标题');
+    } catch (error) {
+      console.error('Failed to reset skill tree title:', error);
+      Message.error('恢复默认标题失败');
     }
   };
 
@@ -253,22 +297,38 @@ function SkillTree() {
   return (
     <div className="skill-tree-page">
       <div className="skill-tree-header">
-        <h1 className="page-title">技能树</h1>
-        <div className="overall-progress">
-          <span>总体进度</span>
-          <Progress
-            percent={overallProgress}
-            style={{ width: 200, marginLeft: 12, strokeColor: getProgressColor(overallProgress) }}
-          />
-          <span className="progress-text">{overallProgress}%</span>
+        <div className="skill-tree-heading">
+          <h1 className="page-title">技能树</h1>
+          <div className="skill-tree-subtitle">{treeTitle}</div>
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div className="skill-tree-header-actions">
+          <Input
+            className="tree-title-input"
+            value={treeTitleDraft}
+            placeholder="自定义技能树标题"
+            onChange={setTreeTitleDraft}
+            onPressEnter={() => void handleSaveTreeTitle()}
+          />
+          <Button onClick={() => void handleResetTreeTitle()}>恢复默认</Button>
+          <Button onClick={() => void handleSaveTreeTitle()}>保存标题</Button>
           <Button type="primary" onClick={() => setShowCreateModal(true)}>新增技能</Button>
         </div>
       </div>
 
+      <div className="overall-progress">
+        <div className="overall-progress-main">
+          <span>总体进度</span>
+          <Progress
+            percent={overallProgress}
+            style={{ width: 220, marginLeft: 12, strokeColor: getProgressColor(overallProgress) }}
+          />
+          <span className="progress-text">{overallProgress}%</span>
+        </div>
+        <span className="overall-progress-extra">技能总数：{allSkills.length}</span>
+      </div>
+
       <div className="skill-tree-content">
-        <Card className="tree-card" title="Java后端工程师技能树">
+        <Card className="tree-card" title={treeTitle}>
           {skills.length === 0 ? (
             <Empty description="暂无技能数据" style={{ margin: '40px 0' }} />
           ) : (
@@ -278,7 +338,7 @@ function SkillTree() {
           )}
         </Card>
 
-        {selectedSkill && (
+        {selectedSkill ? (
           <Card className="detail-card" title="技能详情">
             <div className="detail-header">
               <div className="detail-title">
@@ -339,10 +399,10 @@ function SkillTree() {
               >
                 更新进度
               </Button>
-              <Button style={{ marginLeft: 8 }} onClick={openMetaEditor}>
+              <Button className="detail-action-secondary" onClick={openMetaEditor}>
                 编辑信息
               </Button>
-              <Button style={{ marginLeft: 8 }} status="danger" onClick={handleDeleteSkill}>
+              <Button className="detail-action-secondary" status="danger" onClick={handleDeleteSkill}>
                 删除技能
               </Button>
             </div>
@@ -368,6 +428,10 @@ function SkillTree() {
                 </div>
               </div>
             )}
+          </Card>
+        ) : (
+          <Card className="detail-card detail-card-placeholder" title="技能详情">
+            <Empty description="点击左侧技能查看详情" style={{ margin: '56px 0' }} />
           </Card>
         )}
       </div>

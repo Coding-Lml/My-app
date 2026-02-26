@@ -1020,13 +1020,6 @@ function Notes() {
     }
   };
 
-  const handleRefreshFolder = async () => {
-    if (openedFolder) {
-      await loadFolder(openedFolder);
-      Message.success('已刷新');
-    }
-  };
-
   const renderFindStatus = () => {
     if (findState.error) {
       return findState.error;
@@ -1099,7 +1092,6 @@ function Notes() {
           openedFolder={openedFolder}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
-          onRefreshFolder={() => void handleRefreshFolder()}
           fileTree={sidebarTree}
           onSelectFile={(path) => void handleFileSelect(path)}
           recentFiles={recentFiles}

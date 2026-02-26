@@ -2,20 +2,62 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  min-height: 0;
 }
 
 .skill-tree-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.skill-tree-heading {
+  min-width: 220px;
+}
+
+.skill-tree-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.skill-tree-header-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 20px;
+}
+
+.tree-title-input {
+  width: 280px;
 }
 
 .overall-progress {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+}
+
+.overall-progress-main {
+  display: flex;
+  align-items: center;
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.overall-progress-extra {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .progress-text {
@@ -25,20 +67,22 @@
 }
 
 .skill-tree-content {
-  display: flex;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
 .tree-card {
-  flex: 1;
+  min-height: 0;
   border-radius: 12px;
   overflow: auto;
 }
 
 .skill-tree {
-  padding: 8px 0;
+  padding: 6px 0 12px;
 }
 
 .skill-node {
@@ -51,17 +95,20 @@
   justify-content: space-between;
   padding: 10px 12px;
   border-radius: 8px;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .skill-item:hover {
   background: var(--surface-soft-hover);
+  border-color: var(--border-default);
 }
 
 .skill-item.selected {
   background: var(--accent-soft);
   border-left: 3px solid var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent-strong) 35%, transparent);
 }
 
 .skill-main {
@@ -103,9 +150,13 @@
 }
 
 .detail-card {
-  width: 360px;
+  min-height: 0;
   border-radius: 12px;
   overflow: auto;
+}
+
+.detail-card-placeholder .arco-empty {
+  margin: 0;
 }
 
 .detail-header {
@@ -180,7 +231,14 @@
 }
 
 .detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 24px;
+}
+
+.detail-action-secondary {
+  margin-left: 0 !important;
 }
 
 .sub-skills h4 {
@@ -263,4 +321,48 @@
 
 .dot.advanced {
   background: var(--success-strong);
+}
+
+@media (max-width: 1200px) {
+  .skill-tree-content {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  .detail-card {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .tree-title-input {
+    width: 100%;
+  }
+
+  .skill-tree-header-actions {
+    width: 100%;
+  }
+
+  .skill-tree-header-actions .arco-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .overall-progress {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .overall-progress-main {
+    width: 100%;
+  }
+
+  .overall-progress-main .arco-progress-line {
+    flex: 1;
+  }
+
+  .detail-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }

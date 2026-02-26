@@ -96,7 +96,7 @@
   transition: all 0.3s ease;
 }
 
-.app-shell:not(.is-collapsed) .notes-page .notes-sider {
+.notes-layout:not(.sidebar-hidden) .notes-sider {
   width: 248px !important;
   flex: 0 0 248px !important;
 }
@@ -137,26 +137,6 @@
 
 .notes-search .arco-input {
   border-radius: 6px;
-}
-
-/* Folder Path */
-.folder-path {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  font-size: 11px;
-  color: var(--text-muted);
-  background: var(--surface-soft);
-  border-bottom: 1px solid var(--border-default);
-}
-
-.folder-path-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-right: 8px;
 }
 
 /* File Tree */

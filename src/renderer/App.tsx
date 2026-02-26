@@ -6,6 +6,7 @@ import React, { Suspense } from 'react';
 import CommandPalette from './components/CommandPalette';
 import BrandMark from './components/BrandMark';
 import { MENU_ITEMS } from './config/navigation';
+import { normalizeFontFamily, resolveFontFamilyStack } from './config/fontFamily';
 import { ResolvedTheme, ThemeMode } from './types/theme';
 import './styles/global.css';
 
@@ -76,6 +77,25 @@ function App() {
     void loadTheme();
   }, [applyTheme]);
 
+  const applyFontFamily = useCallback((value: string | null | undefined) => {
+    const normalized = normalizeFontFamily(value);
+    document.documentElement.setAttribute('data-font-family', normalized);
+    document.documentElement.style.setProperty('--app-font-family', resolveFontFamilyStack(normalized));
+  }, []);
+
+  useEffect(() => {
+    const loadFontFamily = async () => {
+      try {
+        const savedFontFamily = await window.electronAPI?.settings?.get('fontFamily');
+        applyFontFamily(savedFontFamily);
+      } catch (error) {
+        console.error('Failed to load font family:', error);
+      }
+    };
+
+    void loadFontFamily();
+  }, [applyFontFamily]);
+
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = () => {
@@ -100,6 +120,16 @@ function App() {
     window.addEventListener('theme-mode-change', handleThemeModeChange as EventListener);
     return () => window.removeEventListener('theme-mode-change', handleThemeModeChange as EventListener);
   }, [applyTheme]);
+
+  useEffect(() => {
+    const handleFontFamilyChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ fontFamily?: string }>;
+      applyFontFamily(customEvent.detail?.fontFamily);
+    };
+
+    window.addEventListener('app-font-family-change', handleFontFamilyChange as EventListener);
+    return () => window.removeEventListener('app-font-family-change', handleFontFamilyChange as EventListener);
+  }, [applyFontFamily]);
 
   const toggleTheme = useCallback(() => {
     const nextMode: ThemeMode = resolvedTheme === 'light' ? 'dark' : 'light';

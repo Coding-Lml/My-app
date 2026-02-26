@@ -1,5 +1,5 @@
-import { Layout, Tabs, Input, Button, Tree, Empty, List } from '@arco-design/web-react';
-import { IconSearch, IconRefresh, IconFile } from '@arco-design/web-react/icon';
+import { Layout, Tabs, Input, Tree, Empty, List } from '@arco-design/web-react';
+import { IconSearch, IconFile } from '@arco-design/web-react/icon';
 
 const { Sider } = Layout;
 const TabPane = Tabs.TabPane;
@@ -16,7 +16,6 @@ interface NotesSidebarProps {
   openedFolder: string | null;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
-  onRefreshFolder: () => void;
   fileTree: NoteTreeNode[];
   onSelectFile: (path: string) => void;
   recentFiles: string[];
@@ -28,7 +27,6 @@ function NotesSidebar({
   openedFolder,
   searchQuery,
   onSearchQueryChange,
-  onRefreshFolder,
   fileTree,
   onSelectFile,
   recentFiles,
@@ -47,12 +45,6 @@ function NotesSidebar({
               allowClear
             />
           </div>
-          {openedFolder && (
-            <div className="folder-path" title={openedFolder}>
-              <span className="folder-path-text">{openedFolder}</span>
-              <Button icon={<IconRefresh />} size="mini" type="text" onClick={onRefreshFolder} />
-            </div>
-          )}
           {fileTree.length > 0 ? (
             <Tree
               className="file-tree"

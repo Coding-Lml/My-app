@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Switch, InputNumber, Button, Message, Divider, Space, Modal } from '@arco-design/web-react';
 import { IconSave, IconDownload, IconUpload } from '@arco-design/web-react/icon';
+import { DEFAULT_FONT_FAMILY, FONT_FAMILY_OPTIONS, FontFamilyKey, normalizeFontFamily } from '../../config/fontFamily';
 import { ThemeMode } from '../../types/theme';
 import { summarizeBackupImport } from '@shared/utils/backup';
 import type { RuntimeCheckResult } from '@shared/types/ipc';
@@ -8,6 +9,7 @@ import './styles.css';
 
 interface SettingsState {
   theme: ThemeMode;
+  fontFamily: FontFamilyKey;
   fontSize: string;
   javaPath: string;
   pythonPath: string;
@@ -16,12 +18,13 @@ interface SettingsState {
 }
 
 type CoreSettings = Partial<
-  Record<'theme' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal', string>
+  Record<'theme' | 'fontFamily' | 'fontSize' | 'javaPath' | 'pythonPath' | 'autoSave' | 'dailyGoal', string>
 >;
 
 function Settings() {
   const [settings, setSettings] = useState<SettingsState>({
     theme: 'light',
+    fontFamily: DEFAULT_FONT_FAMILY,
     fontSize: '14',
     javaPath: '',
     pythonPath: '',
@@ -39,9 +42,11 @@ function Settings() {
       try {
         const data: CoreSettings = await window.electronAPI.settings.getAll();
         const theme: ThemeMode = data.theme === 'dark' || data.theme === 'auto' ? data.theme : 'light';
+        const fontFamily: FontFamilyKey = normalizeFontFamily(data.fontFamily);
         const autoSave: 'true' | 'false' = data.autoSave === 'false' ? 'false' : 'true';
         setSettings({
           theme,
+          fontFamily,
           fontSize: data.fontSize || '14',
           javaPath: data.javaPath || '',
           pythonPath: data.pythonPath || '',
@@ -60,12 +65,14 @@ function Settings() {
     setLoading(true);
     try {
       await window.electronAPI.settings.set('theme', settings.theme, 'appearance');
+      await window.electronAPI.settings.set('fontFamily', settings.fontFamily, 'appearance');
       await window.electronAPI.settings.set('fontSize', settings.fontSize, 'editor');
       await window.electronAPI.settings.set('javaPath', settings.javaPath, 'code');
       await window.electronAPI.settings.set('pythonPath', settings.pythonPath, 'code');
       await window.electronAPI.settings.set('autoSave', settings.autoSave, 'editor');
       await window.electronAPI.settings.set('dailyGoal', settings.dailyGoal, 'study');
       window.dispatchEvent(new CustomEvent('theme-mode-change', { detail: { mode: settings.theme } }));
+      window.dispatchEvent(new CustomEvent('app-font-family-change', { detail: { fontFamily: settings.fontFamily } }));
       Message.success('设置已保存');
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -194,6 +201,20 @@ function Settings() {
                 <Select.Option value="light">浅色</Select.Option>
                 <Select.Option value="dark">深色</Select.Option>
                 <Select.Option value="auto">跟随系统</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item label="全局字体（macOS）">
+              <Select
+                value={settings.fontFamily}
+                onChange={(value) => setSettings({ ...settings, fontFamily: normalizeFontFamily(value) })}
+                className="settings-select-lg"
+              >
+                {FONT_FAMILY_OPTIONS.map((option) => (
+                  <Select.Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Option>
+                ))}
               </Select>
             </Form.Item>
           </Form>

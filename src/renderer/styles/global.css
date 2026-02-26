@@ -6,6 +6,8 @@
 
 :root {
   color-scheme: light;
+  --app-font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'PingFang SC',
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   --surface-canvas: #e5f2ec;
   --surface-raised: #ebf6f1;
@@ -108,6 +110,7 @@
 /* Compatibility aliases to avoid regressions while pages migrate to semantic tokens. */
 :root,
 [data-theme='dark'] {
+  --font-family: var(--app-font-family);
   --bg-primary: var(--surface-canvas);
   --bg-secondary: var(--surface-card);
   --bg-tertiary: var(--surface-soft);
@@ -142,8 +145,7 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'PingFang SC', 'Helvetica Neue',
-    Helvetica, Arial, sans-serif;
+  font-family: var(--app-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--shell-backdrop);

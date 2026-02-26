@@ -89,6 +89,18 @@ function createDraft(language: CodeLanguage): DraftCodeFile {
   };
 }
 
+function parseBooleanSetting(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return fallback;
+}
+
 function CodeRunner() {
   const [openedFolder, setOpenedFolder] = useState<string | null>(null);
   const [fileTree, setFileTree] = useState<WorkspaceFileItem[]>([]);
@@ -103,6 +115,8 @@ function CodeRunner() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [editorFontSize, setEditorFontSize] = useState(14);
+  const [showWorkspace, setShowWorkspace] = useState(true);
+  const [showOutput, setShowOutput] = useState(true);
 
   const currentFile = useMemo(() => {
     if (!currentFilePath) return null;
@@ -138,6 +152,14 @@ function CodeRunner() {
       return updated;
     });
   }, [saveRecentFiles]);
+
+  const saveCodePreference = useCallback(async (key: string, value: string) => {
+    try {
+      await window.electronAPI.settings.set(key, value, 'code');
+    } catch (error) {
+      console.error(`Failed to save code preference (${key}):`, error);
+    }
+  }, []);
 
   const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<WorkspaceFileItem[]> => {
     if (depth > 12) return [];
@@ -227,10 +249,12 @@ function CodeRunner() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const [recentRaw, lastFolder, fontSizeRaw] = await Promise.all([
+        const [recentRaw, lastFolder, fontSizeRaw, workspaceVisibleRaw, outputVisibleRaw] = await Promise.all([
           window.electronAPI.settings.get('codeRecentFiles'),
           window.electronAPI.settings.get('codeWorkspaceFolder'),
           window.electronAPI.settings.get('fontSize'),
+          window.electronAPI.settings.get('codeWorkspaceVisible'),
+          window.electronAPI.settings.get('codeOutputVisible'),
         ]);
 
         if (recentRaw) {
@@ -251,6 +275,9 @@ function CodeRunner() {
             setEditorFontSize(parsed);
           }
         }
+
+        setShowWorkspace(parseBooleanSetting(workspaceVisibleRaw, true));
+        setShowOutput(parseBooleanSetting(outputVisibleRaw, true));
       } catch (error) {
         console.error('Failed to initialize code workspace:', error);
       }
@@ -497,6 +524,22 @@ function CodeRunner() {
     Message.success('已复制输出');
   }, [output]);
 
+  const toggleWorkspace = useCallback(() => {
+    setShowWorkspace((prev) => {
+      const next = !prev;
+      void saveCodePreference('codeWorkspaceVisible', String(next));
+      return next;
+    });
+  }, [saveCodePreference]);
+
+  const toggleOutput = useCallback(() => {
+    setShowOutput((prev) => {
+      const next = !prev;
+      void saveCodePreference('codeOutputVisible', String(next));
+      return next;
+    });
+  }, [saveCodePreference]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
@@ -533,7 +576,7 @@ function CodeRunner() {
           <span className="code-subtitle">稳定的双栏工作区，支持快速打开、编辑与运行代码</span>
         </div>
         <div className="code-actions">
-          <div className="code-actions-group">
+          <div className="code-actions-main">
             <Select value={language} onChange={handleLanguageChange} className="code-language-select">
               <Select.Option value="java">Java ☕</Select.Option>
               <Select.Option value="python">Python 🐍</Select.Option>
@@ -543,6 +586,22 @@ function CodeRunner() {
             <Button icon={<IconFolder />} onClick={() => void handleOpenFolder()}>打开目录</Button>
             <Button icon={<IconSave />} onClick={() => void handleManualSave()}>保存</Button>
             <Button icon={<IconDownload />} onClick={() => void handleSaveAs()}>另存为</Button>
+            <div className="code-actions-view" role="group" aria-label="视图显示">
+              <Button
+                className={`code-visibility-btn ${showWorkspace ? 'is-active' : ''}`}
+                aria-pressed={showWorkspace}
+                onClick={toggleWorkspace}
+              >
+                工作区
+              </Button>
+              <Button
+                className={`code-visibility-btn ${showOutput ? 'is-active' : ''}`}
+                aria-pressed={showOutput}
+                onClick={toggleOutput}
+              >
+                输出区
+              </Button>
+            </div>
           </div>
           <div className="code-actions-run">
             <Button type="primary" icon={<IconPlayCircle />} onClick={() => void handleRun()} loading={isRunning}>
@@ -552,22 +611,24 @@ function CodeRunner() {
         </div>
       </div>
 
-      <div className="code-layout">
-        <WorkspaceSidebar
-          openedFolder={openedFolder}
-          fileTree={fileTree}
-          recentFiles={recentFiles}
-          currentFilePath={currentFilePath}
-          onRefresh={() => {
-            if (openedFolder) {
-              void loadFolder(openedFolder);
-            }
-          }}
-          onOpenFromTree={(filePath) => void loadCodeFile(filePath)}
-          onOpenRecentFile={(filePath) => void handleOpenRecentFile(filePath)}
-        />
+      <div className={`code-layout ${showWorkspace ? '' : 'workspace-hidden'}`}>
+        {showWorkspace ? (
+          <WorkspaceSidebar
+            openedFolder={openedFolder}
+            fileTree={fileTree}
+            recentFiles={recentFiles}
+            currentFilePath={currentFilePath}
+            onRefresh={() => {
+              if (openedFolder) {
+                void loadFolder(openedFolder);
+              }
+            }}
+            onOpenFromTree={(filePath) => void loadCodeFile(filePath)}
+            onOpenRecentFile={(filePath) => void handleOpenRecentFile(filePath)}
+          />
+        ) : null}
 
-        <section className="code-content">
+        <section className={`code-content ${showOutput ? '' : 'output-hidden'}`}>
           <Card
             className="editor-card"
             bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
@@ -637,11 +698,13 @@ function CodeRunner() {
             </div>
           </Card>
 
-          <RunOutputCard
-            output={output}
-            executionTime={executionTime}
-            onCopy={copyOutput}
-          />
+          {showOutput ? (
+            <RunOutputCard
+              output={output}
+              executionTime={executionTime}
+              onCopy={copyOutput}
+            />
+          ) : null}
         </section>
       </div>
     </div>

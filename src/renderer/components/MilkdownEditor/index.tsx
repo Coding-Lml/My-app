@@ -396,6 +396,21 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [sourceFallback, setSourceFallback] = useState(false);
 
+  const scrollHeadingToTop = useCallback((target: HTMLElement) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const offsetTop = targetRect.top - containerRect.top;
+    const nextTop = Math.max(0, scrollContainer.scrollTop + offsetTop - 8);
+
+    scrollContainer.scrollTo({
+      top: nextTop,
+      behavior: 'smooth',
+    });
+  }, []);
+
   const editor = useEditor({
     immediatelyRender: false,
     editable: !readOnly,
@@ -648,7 +663,7 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
 
       const target = scrollContainer.querySelector(`[data-heading-id="${id}"]`) as HTMLElement | null;
       if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollHeadingToTop(target);
         target.classList.add('heading-jump-highlight');
         window.setTimeout(() => {
           target.classList.remove('heading-jump-highlight');
@@ -665,10 +680,16 @@ const MilkdownEditor = forwardRef<MilkdownEditorHandle, MilkdownEditorProps>(fun
 
       editor.chain().focus().setTextSelection(pos + 1).scrollIntoView().run();
       window.setTimeout(() => {
+        const heading = scrollContainer.querySelector(`[data-heading-id="${id}"]`) as HTMLElement | null;
+        if (heading) {
+          scrollHeadingToTop(heading);
+        }
+      }, 32);
+      window.setTimeout(() => {
         detectActiveHeading();
       }, 120);
     },
-    [detectActiveHeading, editor]
+    [detectActiveHeading, editor, scrollHeadingToTop]
   );
 
   const revealMatch = useCallback(

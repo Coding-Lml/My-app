@@ -415,6 +415,7 @@ export class Database {
     // Default settings
     const settings = [
       { key: 'theme', value: 'light', category: 'appearance' },
+      { key: 'fontFamily', value: 'system', category: 'appearance' },
       { key: 'fontSize', value: '14', category: 'editor' },
       { key: 'javaPath', value: '', category: 'code' },
       { key: 'pythonPath', value: '', category: 'code' },

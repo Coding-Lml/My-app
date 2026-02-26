@@ -42,12 +42,53 @@
   background: color-mix(in srgb, var(--surface-card) 86%, transparent);
 }
 
-.code-actions-group {
+.code-actions-main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.code-actions-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.code-visibility-btn.arco-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  min-width: 84px;
+  padding-inline: 12px;
+}
+
+.code-visibility-btn.arco-btn:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--surface-soft-hover) 85%, transparent);
+}
+
+.code-visibility-btn.arco-btn.is-active,
+.code-visibility-btn.arco-btn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent-soft) 68%, var(--surface-card));
+  border-color: color-mix(in srgb, var(--accent-strong) 25%, var(--border-default));
+  color: var(--text-primary);
+}
+
+.code-visibility-btn.arco-btn:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-soft) 75%, transparent);
+}
+
+.code-actions-main .arco-select,
+.code-actions-main .arco-btn {
+  flex-shrink: 0;
 }
 
 .code-actions-run {
@@ -73,7 +114,7 @@
 .app-shell:not(.is-collapsed) .code-page .code-actions {
   flex: 1;
   min-width: 0;
-  max-width: 780px;
+  max-width: none;
 }
 
 .app-shell:not(.is-collapsed) .code-page .code-layout {
@@ -85,7 +126,20 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+  align-items: stretch;
   gap: 16px;
+}
+
+.code-layout > * {
+  min-width: 0;
+}
+
+.code-layout.workspace-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell:not(.is-collapsed) .code-page .code-layout.workspace-hidden {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .code-sidebar {
@@ -206,14 +260,23 @@
 }
 
 .code-content {
+  width: 100%;
   min-width: 0;
   min-height: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(360px, 1fr) minmax(180px, 230px);
   gap: 16px;
 }
 
+.code-content.output-hidden {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .editor-card {
+  width: 100%;
+  min-width: 0;
   height: 100%;
   border-radius: 14px;
   overflow: hidden;
@@ -229,6 +292,7 @@
 }
 
 .editor-monaco-wrap {
+  width: 100%;
   flex: 1;
   min-height: 0;
 }
@@ -362,10 +426,6 @@
     align-items: stretch;
   }
 
-  .code-actions {
-    justify-content: space-between;
-  }
-
   .code-layout {
     grid-template-columns: 1fr;
   }
@@ -389,8 +449,8 @@
     gap: 8px;
   }
 
-  .code-actions-group {
-    width: 100%;
+  .code-actions-main {
+    flex-basis: 100%;
   }
 
   .code-language-select {
