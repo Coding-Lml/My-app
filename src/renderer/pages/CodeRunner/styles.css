@@ -31,12 +31,11 @@
 }
 
 .code-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 8px;
+  gap: 6px 8px;
+  padding: 5px 6px;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background: color-mix(in srgb, var(--surface-card) 86%, transparent);
@@ -44,21 +43,42 @@
 
 .code-actions-main {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
-  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.code-actions-main::-webkit-scrollbar {
+  display: none;
 }
 
 .code-actions-view {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px;
+  gap: 2px;
+  padding: 1px;
   border: 1px solid var(--border-default);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-soft);
+  flex-shrink: 0;
+}
+
+.code-icon-btn.arco-btn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-run-btn.arco-btn {
+  width: 36px;
+  min-width: 36px;
 }
 
 .code-visibility-btn.arco-btn {
@@ -66,8 +86,8 @@
   border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
-  min-width: 84px;
-  padding-inline: 12px;
+  min-width: 30px;
+  padding-inline: 0;
 }
 
 .code-visibility-btn.arco-btn:hover {
@@ -95,20 +115,20 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin-left: auto;
   flex-shrink: 0;
+  margin-left: 2px;
 }
 
 .code-actions-run .arco-btn {
-  min-width: 112px;
+  min-width: 36px;
 }
 
 .code-language-select {
-  width: 136px;
+  width: 116px;
 }
 
 .app-shell:not(.is-collapsed) .code-page .code-header {
-  gap: 12px;
+  gap: 10px;
 }
 
 .app-shell:not(.is-collapsed) .code-page .code-actions {
@@ -445,12 +465,13 @@
   }
 
   .code-actions {
-    padding: 8px 6px;
-    gap: 8px;
+    padding: 5px;
+    gap: 4px;
   }
 
   .code-actions-main {
-    flex-basis: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .code-language-select {

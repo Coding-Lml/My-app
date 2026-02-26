@@ -129,16 +129,6 @@
   flex-direction: column;
 }
 
-/* Search */
-.notes-search {
-  padding: 12px;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.notes-search .arco-input {
-  border-radius: 6px;
-}
-
 /* File Tree */
 .file-tree {
   flex: 1;

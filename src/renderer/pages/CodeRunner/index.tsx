@@ -7,6 +7,8 @@ import {
   IconFile,
   IconDownload,
   IconPlus,
+  IconApps,
+  IconCode,
 } from '@arco-design/web-react/icon';
 import Editor from '@monaco-editor/react';
 import WorkspaceSidebar, { WorkspaceFileItem } from './components/WorkspaceSidebar';
@@ -577,36 +579,75 @@ function CodeRunner() {
         </div>
         <div className="code-actions">
           <div className="code-actions-main">
-            <Select value={language} onChange={handleLanguageChange} className="code-language-select">
+            <Select size="small" value={language} onChange={handleLanguageChange} className="code-language-select">
               <Select.Option value="java">Java ☕</Select.Option>
               <Select.Option value="python">Python 🐍</Select.Option>
             </Select>
-            <Button icon={<IconPlus />} onClick={handleNewFile}>新建</Button>
-            <Button icon={<IconFile />} onClick={() => void handleOpenFile()}>打开文件</Button>
-            <Button icon={<IconFolder />} onClick={() => void handleOpenFolder()}>打开目录</Button>
-            <Button icon={<IconSave />} onClick={() => void handleManualSave()}>保存</Button>
-            <Button icon={<IconDownload />} onClick={() => void handleSaveAs()}>另存为</Button>
+            <Button size="small" className="code-icon-btn" icon={<IconPlus />} onClick={handleNewFile} title="新建" aria-label="新建" />
+            <Button
+              size="small"
+              className="code-icon-btn"
+              icon={<IconFile />}
+              onClick={() => void handleOpenFile()}
+              title="打开文件"
+              aria-label="打开文件"
+            />
+            <Button
+              size="small"
+              className="code-icon-btn"
+              icon={<IconFolder />}
+              onClick={() => void handleOpenFolder()}
+              title="打开目录"
+              aria-label="打开目录"
+            />
+            <Button
+              size="small"
+              className="code-icon-btn"
+              icon={<IconSave />}
+              onClick={() => void handleManualSave()}
+              title="保存"
+              aria-label="保存"
+            />
+            <Button
+              size="small"
+              className="code-icon-btn"
+              icon={<IconDownload />}
+              onClick={() => void handleSaveAs()}
+              title="另存为"
+              aria-label="另存为"
+            />
             <div className="code-actions-view" role="group" aria-label="视图显示">
               <Button
-                className={`code-visibility-btn ${showWorkspace ? 'is-active' : ''}`}
+                size="small"
+                className={`code-icon-btn code-visibility-btn ${showWorkspace ? 'is-active' : ''}`}
                 aria-pressed={showWorkspace}
                 onClick={toggleWorkspace}
-              >
-                工作区
-              </Button>
+                title={showWorkspace ? '隐藏工作区' : '显示工作区'}
+                aria-label={showWorkspace ? '隐藏工作区' : '显示工作区'}
+                icon={<IconApps />}
+              />
               <Button
-                className={`code-visibility-btn ${showOutput ? 'is-active' : ''}`}
+                size="small"
+                className={`code-icon-btn code-visibility-btn ${showOutput ? 'is-active' : ''}`}
                 aria-pressed={showOutput}
                 onClick={toggleOutput}
-              >
-                输出区
-              </Button>
+                title={showOutput ? '隐藏输出区' : '显示输出区'}
+                aria-label={showOutput ? '隐藏输出区' : '显示输出区'}
+                icon={<IconCode />}
+              />
             </div>
           </div>
           <div className="code-actions-run">
-            <Button type="primary" icon={<IconPlayCircle />} onClick={() => void handleRun()} loading={isRunning}>
-              运行
-            </Button>
+            <Button
+              size="small"
+              type="primary"
+              className="code-icon-btn code-run-btn"
+              icon={<IconPlayCircle />}
+              onClick={() => void handleRun()}
+              loading={isRunning}
+              title="运行"
+              aria-label="运行"
+            />
           </div>
         </div>
       </div>

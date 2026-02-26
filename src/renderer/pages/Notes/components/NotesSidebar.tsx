@@ -1,5 +1,5 @@
-import { Layout, Tabs, Input, Tree, Empty, List } from '@arco-design/web-react';
-import { IconSearch, IconFile } from '@arco-design/web-react/icon';
+import { Layout, Tabs, Tree, Empty, List } from '@arco-design/web-react';
+import { IconFile } from '@arco-design/web-react/icon';
 
 const { Sider } = Layout;
 const TabPane = Tabs.TabPane;
@@ -14,8 +14,6 @@ export interface NoteTreeNode {
 interface NotesSidebarProps {
   showSidebar: boolean;
   openedFolder: string | null;
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
   fileTree: NoteTreeNode[];
   onSelectFile: (path: string) => void;
   recentFiles: string[];
@@ -25,8 +23,6 @@ interface NotesSidebarProps {
 function NotesSidebar({
   showSidebar,
   openedFolder,
-  searchQuery,
-  onSearchQueryChange,
   fileTree,
   onSelectFile,
   recentFiles,
@@ -36,15 +32,6 @@ function NotesSidebar({
     <Sider width={260} className="notes-sider" collapsed={!showSidebar} collapsedWidth={0}>
       <Tabs defaultActiveTab="files" type="line">
         <TabPane key="files" title="文件树">
-          <div className="notes-search">
-            <Input
-              placeholder="搜索文件..."
-              prefix={<IconSearch />}
-              value={searchQuery}
-              onChange={onSearchQueryChange}
-              allowClear
-            />
-          </div>
           {fileTree.length > 0 ? (
             <Tree
               className="file-tree"

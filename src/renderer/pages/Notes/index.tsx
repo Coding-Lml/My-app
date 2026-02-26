@@ -80,7 +80,6 @@ function Notes() {
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
 
   const [editingContent, setEditingContent] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [newFileName, setNewFileName] = useState('');
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
@@ -944,25 +943,6 @@ function Notes() {
     </Menu>
   );
 
-  const getFilteredFileTree = (tree: FileItem[], query: string): FileItem[] => {
-    if (!query) return tree;
-    return tree
-      .map((item) => {
-        if (item.isDirectory) {
-          const children = getFilteredFileTree(item.children || [], query);
-          if (children.length > 0 || item.name.toLowerCase().includes(query.toLowerCase())) {
-            return { ...item, children };
-          }
-          return null;
-        }
-        if (item.name.toLowerCase().includes(query.toLowerCase())) {
-          return item;
-        }
-        return null;
-      })
-      .filter(Boolean) as FileItem[];
-  };
-
   const handleOpenRecentFile = async (filePath: string) => {
     const existsResult = await window.electronAPI.fs.fileExists(filePath);
     if (!existsResult.success || !existsResult.exists) {
@@ -1031,7 +1011,7 @@ function Notes() {
     return `${current}/${findState.total}`;
   };
 
-  const sidebarTree = renderFileTree(getFilteredFileTree(fileTree, searchQuery));
+  const sidebarTree = renderFileTree(fileTree);
 
   return (
     <div className={`notes-page ${focusMode ? 'focus-mode' : ''}`} onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop}>
@@ -1090,8 +1070,6 @@ function Notes() {
         <NotesSidebar
           showSidebar={showSidebar}
           openedFolder={openedFolder}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
           fileTree={sidebarTree}
           onSelectFile={(path) => void handleFileSelect(path)}
           recentFiles={recentFiles}
