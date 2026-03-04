@@ -1,0 +1,96 @@
+# Academia（Learning App）前端设计审查报告
+
+## 整体评价
+
+> [!TIP]
+> 你的项目 **已经具备不错的设计基础**，并不需要全盘推翻重来。下面我分"优势"与"改进建议"两部分来分析，最后给出一个可落地的重构方向。
+
+---
+
+## ✅ 做得好的地方
+
+| 领域 | 现状 |
+|------|------|
+| **设计令牌系统** | [global.css](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/styles/global.css) 定义了完整的 CSS Variables 体系（颜色、阴影、圆角、动效时间曲线），light/dark 两套主题切换成熟 |
+| **半透明层次** | 广泛使用 `color-mix(in srgb, ...)` 实现带透明度的表面，搭配 `backdrop-filter: blur()` 营造磨砂质感，整体质感不错 |
+| **Arco Design 覆盖** | 对 Card、Input、Modal、Tab 等组件做了全套样式覆盖，颜色和圆角统一，没有"拼凑感" |
+| **品牌标识** | [BrandMark](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/components/BrandMark/index.tsx#9-54) 是一个手工 SVG logo，含渐变和投影，精度高 |
+| **响应式** | 每个页面都写了 `@media` 断点，在桌面端 Electron 下够用 |
+| **主题 + 字体 + 密度** | 支持明暗切换、字体族切换、compact/comfortable 密度切换，功能齐全 |
+
+---
+
+## ⚠️ 需要改进的地方
+
+### 1. 视觉层面 — 缺少"高级感"的关键元素
+
+| 问题 | 表现 | 建议 |
+|------|------|------|
+| **页面缺少入场动画** | 只有一个全局 `.fade-in` class，但几乎没有页面在用它 | 为路由切换加 staggered fade-in-up 动效；KPI 卡片、列表项加入渐次出现的 micro-animation |
+| **排版层级偏弱** | 标题都是简单 `font-size + font-weight`，缺少呼吸感 | 引入 display 字体（如 Inter Display / SF Pro Display），加大标题与副标题的对比度；增加页面间距 |
+| **卡片/面板缺乏纵深** | 阴影 `shadow-flat` → `shadow-raised` 变化单一 | 添加 hover 时的 3D lift 效果（`translateY(-2px)` + 更大阴影）和微妙的边框亮光(光泽描边 shimmer)让面板有玻璃质感 |
+| **按钮和交互元素单调** | 主按钮只是纯色背景 | 给关键 CTA 加渐变背景(gradient)、hover luminance 变化、active scale 缩放 |
+| **热力图 / 数据可视化偏基础** | heatmap 是纯色块，KPI 只是文字+数字 | 可以用环形进度(ring chart) 替代 KPI 数字；heatmap 加 tooltip 浮窗和动画 |
+| **空状态体验空白** | 例如 Todos 空状态只有 `<Empty />` 组件 | 替换为插画 + 引导 CTA 的自定义空状态 |
+
+### 2. 结构/架构层面
+
+| 问题 | 表现 | 建议 |
+|------|------|------|
+| **CSS 文件体量大且扁平** | [global.css](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/styles/global.css) = 758 行包含全局 + layout + Arco 覆盖 + 工具类 | 拆分为 `tokens.css`、`reset.css`、`layout.css`、`arco-overrides.css`，按职责分离 |
+| **页面级样式耦合全局** | `.page-title`、`.page-context-bar` 等公共类定义在 [global.css](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/styles/global.css) 里 | 提取出 `shared-components.css` 或改为 React 组件（`PageHeader`、`ContextBar`） |
+| **CSS class 命名不统一** | 有的页面用 BEM-like（`.todo-item-content`），有的不是（`.stat-value.pending`） | 统一使用 CSS Modules 或至少统一 BEM 约定 |
+| **组件抽象不够** | [CheckIn](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/pages/CheckIn/index.tsx#42-384) 页面 380 行 JSX 包含数据逻辑 + UI | 将 KPI 卡片、Heatmap、Timer Display 抽为独立组件 |
+| **Notes 页面过大** | [Notes/index.tsx](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/pages/Notes/index.tsx) 有 **1241 行**，逻辑和 UI 混杂 | 提取 hooks（`useFileManager`, `useEditor`）+ 拆分子组件 |
+
+### 3. 缺失的"高级"特性
+
+- **过渡动画**：路由切换无动画，页面"闪现"出来
+- **骨架屏 / Loading**：`Suspense fallback` 只是文字"加载中…"，建议替换为 skeleton
+- **拖拽交互**：Notes 支持文件拖放，但其他页面（如 Todos 排序）没有交互感
+- **键盘导航体验**：有 Command Palette，但页面内快捷键覆盖不全
+
+---
+
+## 🎯 重构建议方案
+
+> [!IMPORTANT]
+> 建议采取 **渐进式重构**，不需要一次全部重写。按优先级分三个阶段实施。
+
+### Phase 1：视觉润色（低风险，效果显著）
+
+**目标**：不改动组件结构，仅通过 CSS/动画提升视觉质感
+
+1. **全局动画系统** — 添加 `stagger delay` utility classes，让页面卡片/列表逐个淡入
+2. **按钮升级** — 关键按钮添加渐变背景 + hover 缩放 + active 下压效果
+3. **卡片深度** — hover 时 `translateY(-3px)` + `shadow-floating`，加入微妙的边框亮光
+4. **Skeleton Loading** — 替换 `Suspense fallback` 为骨架屏组件
+5. **排版提升** — 增大 `page-title` 字号对比，副标题用更细的字重，增加页面内的留白和间距
+
+### Phase 2：组件重构（中等工作量）
+
+**目标**：提高代码可维护性 + 增加交互质感
+
+1. **拆分 [global.css](file:///Users/aloong/Documents/My%20Web/my-app/src/renderer/styles/global.css)** → `tokens.css` + `reset.css` + `layout.css` + `arco-overrides.css`
+2. **抽取公共 UI 组件**：
+   - `<PageHeader>` — 统一页面标题 + 上下文栏
+   - `<KpiCard>` — 带图标 + 数值 + 标签的统计卡片
+   - `<EmptyState>` — 自定义插画空状态
+   - `<SkeletonPage>` — 骨架屏加载态
+3. **Notes 页面拆分** — 提取 `useFileManager` + `useEditor` hooks，JSX 拆为 3-4 个子组件
+4. **路由过渡动画** — 使用 `framer-motion` 的 `AnimatePresence` 实现页面切换动画
+
+### Phase 3：高级体验升级（可选）
+
+1. **数据可视化升级** — CheckIn 热力图加 tooltip + 动画；KPI 用环形进度图（已有 recharts 依赖）
+2. **Todos 拖拽排序** — 利用 `@dnd-kit` 实现拖拽
+3. **深色模式优化** — 增加微妙的 glow 效果让深色模式更有层次感
+4. **打字机/数字滚动效果** — Timer 数字变化时用 count-up 动画
+
+---
+
+## 总结
+
+你的代码架构和设计令牌系统已经远超平均水平。当前最大的差距在于 **缺少动效和视觉深度**（卡片 hover、入场动画、按钮反馈），以及 **部分组件过大未拆分**。如果按 Phase 1 → 2 → 3 的顺序推进，可以用最小改动获得最大的视觉提升。
+
+**你想从哪个阶段开始？** 我可以立即着手实施。
