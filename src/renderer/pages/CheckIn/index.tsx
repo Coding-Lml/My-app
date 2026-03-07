@@ -9,6 +9,9 @@ import {
   IconPauseCircle,
 } from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
+import PageHeader from '../../components/UI/PageHeader';
+import PageContextBar from '../../components/UI/PageContextBar';
+import KpiCard from '../../components/UI/KpiCard';
 import './styles.css';
 
 interface CheckIn {
@@ -213,24 +216,35 @@ function CheckIn() {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
   return (
-    <div className="checkin-page">
-      <h1 className="page-title">学习打卡</h1>
+    <div className="checkin-page fade-in">
+      <PageHeader
+        title="学习打卡"
+        subtitle="记录你的学习历程，保持专注与坚持"
+      />
 
-      <div className="page-context-bar">
-        <div className="page-context-main">
-          <span className="page-context-label">Today Deck</span>
-          <span className="page-context-value">{dayjs().format('YYYY年MM月DD日')} · 星期{weekdays[dayjs().day()]}</span>
-        </div>
-        <div className="page-context-metrics">
-          <span className={`page-context-pill ${isStudying ? 'accent' : todayDuration > 0 ? 'success' : 'warning'}`}>
-            {statusText}
-          </span>
-          <span className="page-context-pill accent">连续 {stats.consecutiveDays} 天</span>
-          <span className="page-context-pill warning">剩余 {goalRemaining} 分钟</span>
-        </div>
-      </div>
+      <PageContextBar
+        label="Today Deck"
+        value={`${dayjs().format('YYYY年MM月DD日')} · 星期${weekdays[dayjs().day()]}`}
+        metrics={[
+          {
+            label: 'Status',
+            value: statusText,
+            type: isStudying ? 'accent' : todayDuration > 0 ? 'success' : 'warning'
+          },
+          {
+            label: 'Streak',
+            value: `连续 ${stats.consecutiveDays} 天`,
+            type: 'accent'
+          },
+          {
+            label: 'Remaining',
+            value: `剩余 ${goalRemaining} 分钟`,
+            type: 'warning'
+          }
+        ]}
+      />
 
-      <div className="checkin-deck">
+      <div className="checkin-deck stagger-children">
         <Card className="checkin-primary-card">
           <div className="checkin-primary-header">
             <div className="today-date">
@@ -242,7 +256,7 @@ function CheckIn() {
             </span>
           </div>
 
-          <div className="timer-display">{formatDuration(todayDuration)}</div>
+          <div className={`timer-display${isStudying ? ' is-studying pulse-active' : ''}`}>{formatDuration(todayDuration)}</div>
           <div className="timer-hint">今日累计学习时长</div>
 
           <div className="checkin-actions">
@@ -291,55 +305,45 @@ function CheckIn() {
           </div>
         </Card>
 
-        <Card className="checkin-stats-card" title="学习概览">
-          <div className="kpi-grid">
-            <div className="kpi-item">
-              <div className="kpi-icon fire"><IconFire /></div>
-              <div>
-                <div className="kpi-value">{stats.consecutiveDays}</div>
-                <div className="kpi-label">连续打卡</div>
-              </div>
-            </div>
-
-            <div className="kpi-item">
-              <div className="kpi-icon calendar"><IconCalendar /></div>
-              <div>
-                <div className="kpi-value">{stats.totalDays}</div>
-                <div className="kpi-label">累计打卡</div>
-              </div>
-            </div>
-
-            <div className="kpi-item">
-              <div className="kpi-icon clock"><IconClockCircle /></div>
-              <div>
-                <div className="kpi-value">{formatDuration(stats.totalDuration)}</div>
-                <div className="kpi-label">累计学习</div>
-              </div>
-            </div>
-
-            <div className="kpi-item">
-              <div className="kpi-icon month"><IconCalendar /></div>
-              <div>
-                <div className="kpi-value">{stats.thisMonthDays}</div>
-                <div className="kpi-label">本月打卡</div>
-              </div>
-            </div>
-
-            <div className="kpi-item">
-              <div className="kpi-icon month-clock"><IconClockCircle /></div>
-              <div>
-                <div className="kpi-value">{formatDuration(stats.thisMonthDuration)}</div>
-                <div className="kpi-label">本月学习</div>
-              </div>
-            </div>
-
-            <div className="kpi-item">
-              <div className="kpi-icon tasks"><IconCheckCircle /></div>
-              <div>
-                <div className="kpi-value">{stats.totalTasks}</div>
-                <div className="kpi-label">完成任务</div>
-              </div>
-            </div>
+        <Card className="checkin-stats-card" title="学习概览" bordered={false}>
+          <div className="kpi-grid stagger-children">
+            <KpiCard
+              title="连续打卡"
+              value={stats.consecutiveDays}
+              icon={<IconFire />}
+              trend={{ value: 12, isUp: true }}
+              className="fire"
+            />
+            <KpiCard
+              title="累计打卡"
+              value={stats.totalDays}
+              icon={<IconCalendar />}
+              className="calendar"
+            />
+            <KpiCard
+              title="累计学习"
+              value={formatDuration(stats.totalDuration)}
+              icon={<IconClockCircle />}
+              className="clock"
+            />
+            <KpiCard
+              title="本月打卡"
+              value={stats.thisMonthDays}
+              icon={<IconCalendar />}
+              className="month"
+            />
+            <KpiCard
+              title="本月学习"
+              value={formatDuration(stats.thisMonthDuration)}
+              icon={<IconClockCircle />}
+              className="month-clock"
+            />
+            <KpiCard
+              title="完成任务"
+              value={stats.totalTasks}
+              icon={<IconCheckCircle />}
+              className="tasks"
+            />
           </div>
         </Card>
       </div>

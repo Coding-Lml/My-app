@@ -1,0 +1,52 @@
+.empty-state-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    padding: var(--spacing-xxl);
+    text-align: center;
+    animation: fade-in-up 0.6s var(--ease-out-cubic);
+}
+
+.empty-state-wrapper.search {
+    min-height: 150px;
+}
+
+.empty-state-content {
+    margin-top: var(--spacing-md);
+}
+
+.empty-state-title {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color-bright);
+    font-weight: 700;
+}
+
+.empty-state-description {
+    color: var(--text-color-soft);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: var(--spacing-xl);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
+.empty-state-wrapper .arco-empty-icon {
+    font-size: 80px;
+    color: var(--border-color-soft);
+    opacity: 0.6;
+    margin-bottom: var(--spacing-md);
+    display: block;
+}
+
+.empty-state-wrapper.error .arco-empty-icon {
+    color: var(--danger-soft);
+}

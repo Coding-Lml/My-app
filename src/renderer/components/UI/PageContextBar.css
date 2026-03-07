@@ -1,0 +1,3 @@
+.page-context-bar {
+  animation: fade-in-up var(--motion-base) both;
+}

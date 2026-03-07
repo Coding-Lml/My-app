@@ -1,0 +1,114 @@
+/* 
+  Premium Visual Effects 
+  This module contains advanced CSS effects for a "high-end" UI feel.
+*/
+
+/* Glossy / Glass Surface */
+.glass-surface {
+    background: color-mix(in srgb, var(--surface-base), transparent 15%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--white, #fff), transparent 85%);
+    box-shadow:
+        var(--shadow-raised),
+        inset 0 1px 1px color-mix(in srgb, var(--white, #fff), transparent 60%);
+}
+
+[data-theme='dark'] .glass-surface {
+    background: color-mix(in srgb, var(--surface-base), transparent 30%);
+    border-color: color-mix(in srgb, var(--white, #fff), transparent 92%);
+    box-shadow:
+        var(--shadow-raised),
+        inset 0 1px 1px color-mix(in srgb, var(--white, #fff), transparent 88%);
+}
+
+/* 3D Lift on Hover */
+.lift-on-hover {
+    transition: transform var(--motion-base), box-shadow var(--motion-base), border-color var(--motion-base);
+}
+
+.lift-on-hover:hover {
+    transform: translateY(-4px) scale(1.005);
+    box-shadow: var(--shadow-floating);
+    border-color: var(--accent-primary);
+}
+
+.lift-on-hover:active {
+    transform: translateY(-1px) scale(0.995);
+    transition-duration: var(--motion-fast);
+}
+
+/* Glossy Border / Shimmer Border */
+.glossy-border {
+    position: relative;
+    border: 1px solid var(--border-default);
+}
+
+.glossy-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--white, #fff), transparent 40%),
+            transparent 40%,
+            transparent 60%,
+            color-mix(in srgb, var(--white, #fff), transparent 80%));
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+[data-theme='dark'] .glossy-border::before {
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--white, #fff), transparent 70%),
+            transparent 40%,
+            transparent 60%,
+            color-mix(in srgb, var(--white, #fff), transparent 90%));
+    opacity: 0.15;
+}
+
+/* Shimmer Animation for loading or accents */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.shimmer-mask {
+    position: relative;
+    overflow: hidden;
+}
+
+.shimmer-mask::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.08),
+            transparent);
+    animation: shimmer 2s infinite;
+}
+
+[data-theme='dark'] .shimmer-mask::after {
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.05),
+            transparent);
+}

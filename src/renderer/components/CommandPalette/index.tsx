@@ -116,68 +116,77 @@ function CommandPalette({ visible, onClose, onToggleTheme, themeMode, resolvedTh
       onCancel={onClose}
       footer={null}
       closable={false}
-      className="command-palette-modal"
+      wrapClassName="command-palette-modal"
+      unmountOnExit
       autoFocus={false}
       focusLock={false}
     >
-      <div className="command-palette">
+      <div className="command-palette-container">
         <Input
           prefix={<IconSearch />}
-          placeholder="搜索命令或页面..."
+          placeholder="Type a command or search..."
           value={search}
           onChange={setSearch}
           autoFocus
-          className="command-input"
+          className="command-palette-input"
         />
-
-        <div className="command-meta">主题模式：{themeMode === 'auto' ? '跟随系统' : themeMode === 'dark' ? '深色' : '浅色'}</div>
-
-        <div className="command-list">
+        <div className="command-palette-list-wrapper">
           {navigationCommands.length > 0 && (
-            <div className="command-group">
-              <div className="command-group-title">导航</div>
+            <div className="command-palette-group">
+              <div className="command-palette-group-title">Navigation</div>
               <List
                 dataSource={navigationCommands}
-                render={(cmd: Command, index: number) => (
-                  <div
-                    className={`command-item ${index === selectedIndex ? 'selected' : ''}`}
+                render={(cmd, index) => (
+                  <List.Item
+                    key={cmd.id}
+                    className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
                     onClick={cmd.action}
                     onMouseEnter={() => setSelectedIndex(index)}
                   >
-                    <span className="command-icon">{cmd.icon}</span>
-                    <span className="command-label">{cmd.label}</span>
-                  </div>
+                    <div className="command-palette-item-content">
+                      <div className="command-palette-item-icon">{cmd.icon}</div>
+                      <div className="command-palette-item-text">
+                        <span className="command-palette-item-title">{cmd.label}</span>
+                      </div>
+                    </div>
+                  </List.Item>
                 )}
               />
             </div>
           )}
 
           {actionCommands.length > 0 && (
-            <div className="command-group">
-              <div className="command-group-title">操作</div>
+            <div className="command-palette-group">
+              <div className="command-palette-group-title">Actions</div>
               <List
                 dataSource={actionCommands}
-                render={(cmd: Command, index: number) => (
-                  <div
-                    className={`command-item ${navigationCommands.length + index === selectedIndex ? 'selected' : ''}`}
+                render={(cmd, index) => (
+                  <List.Item
+                    key={cmd.id}
+                    className={`command-palette-item ${navigationCommands.length + index === selectedIndex ? 'selected' : ''}`}
                     onClick={cmd.action}
                     onMouseEnter={() => setSelectedIndex(navigationCommands.length + index)}
                   >
-                    <span className="command-icon">{cmd.icon}</span>
-                    <span className="command-label">{cmd.label}</span>
-                  </div>
+                    <div className="command-palette-item-content">
+                      <div className="command-palette-item-icon">{cmd.icon}</div>
+                      <div className="command-palette-item-text">
+                        <span className="command-palette-item-title">{cmd.label}</span>
+                      </div>
+                    </div>
+                  </List.Item>
                 )}
               />
             </div>
           )}
 
-          {filteredCommands.length === 0 && <div className="command-empty">没有找到匹配的命令</div>}
+          {filteredCommands.length === 0 && (
+            <div className="command-palette-empty">No commands found</div>
+          )}
         </div>
-
-        <div className="command-hints">
-          <span>↑↓ 选择</span>
-          <span>↵ 确认</span>
-          <span>Esc 关闭</span>
+        <div className="command-palette-footer">
+          <span><kbd>↑↓</kbd> to navigate</span>
+          <span><kbd>Enter</kbd> to select</span>
+          <span><kbd>Esc</kbd> to close</span>
         </div>
       </div>
     </Modal>

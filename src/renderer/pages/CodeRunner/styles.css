@@ -138,6 +138,11 @@
 .code-run-btn.arco-btn {
   width: 36px;
   min-width: 36px;
+  transition: transform var(--motion-spring), box-shadow var(--motion-fast) !important;
+}
+
+.code-run-btn.arco-btn:hover {
+  transform: scale(1.08);
 }
 
 .code-visibility-btn.arco-btn {
@@ -217,7 +222,7 @@
   gap: 12px;
 }
 
-.code-layout > * {
+.code-layout>* {
   min-width: 0;
 }
 

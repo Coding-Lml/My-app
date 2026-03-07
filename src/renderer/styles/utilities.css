@@ -1,0 +1,97 @@
+.fade-in {
+  animation: fade-in-up var(--motion-slow) both;
+}
+
+.fade-in-fast {
+  animation: fade-in-up var(--motion-base) both;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Stagger utility: apply .stagger-children to parent */
+.stagger-children > * {
+  animation: fade-in-up var(--motion-slow) both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.16s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.24s; }
+.stagger-children > *:nth-child(n+7) { animation-delay: 0.28s; }
+
+/* Scale-in pop */
+.pop-in {
+  animation: scale-in var(--motion-spring) both;
+}
+
+/* Slide from right */
+.slide-in {
+  animation: slide-in-right var(--motion-base) both;
+}
+
+/* Page transition wrapper */
+.page-enter {
+  animation: fade-in-up var(--motion-base) both;
+}
+
+/* Number counter / timer pulse when active */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.72; }
+}
+
+.pulse-active {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+[data-ui-density='compact'] .content {
+  padding: 16px;
+}
+
+[data-ui-density='compact'] .sider-menu .arco-menu-item {
+  height: 38px;
+  line-height: 38px;
+  margin: 5px 0;
+}
+
+[data-ui-density='compact'] .sider-menu .arco-menu-item .arco-menu-item-inner {
+  padding: 0 12px;
+}
+
+@media (max-width: 1024px) {
+  .content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 12px;
+  }
+}

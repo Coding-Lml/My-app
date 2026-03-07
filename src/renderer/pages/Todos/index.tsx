@@ -1,25 +1,40 @@
 import { useEffect, useState } from 'react';
 import {
   Layout,
-  List,
   Button,
   Input,
   Modal,
-  Tag,
-  Empty,
   Card,
   DatePicker,
   Select,
   Radio,
+  Message,
 } from '@arco-design/web-react';
-import { IconPlus, IconDelete, IconCheckCircle } from '@arco-design/web-react/icon';
+import { IconPlus, IconCheckCircle } from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
+import PageHeader from '../../components/UI/PageHeader';
+import PageContextBar from '../../components/UI/PageContextBar';
+import EmptyState from '../../components/UI/EmptyState';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { SortableTodoItem } from './components/SortableTodoItem';
 import './styles.css';
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
 
-interface Todo {
+export interface Todo {
   id: number;
   title: string;
   description: string | null;
@@ -42,6 +57,7 @@ const CATEGORIES = ['学习', '项目', '面试', '其他'];
 
 function Todos() {
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [manualOrder, setManualOrder] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [showNewTodoModal, setShowNewTodoModal] = useState(false);
   const [newTodo, setNewTodo] = useState({
@@ -60,6 +76,9 @@ function Todos() {
     try {
       const data = await window.electronAPI.todos.getAll();
       setTodos(data);
+      if (manualOrder.length === 0 && data.length > 0) {
+        setManualOrder(data.map((t: Todo) => t.id));
+      }
     } catch (error) {
       console.error('Failed to load todos:', error);
     }
@@ -116,10 +135,69 @@ function Todos() {
     return true;
   });
 
+  const handleClearCompleted = async () => {
+    Modal.confirm({
+      title: '清空已完成项',
+      content: '确定要删除所有已完成的待办事项吗？此操作不可恢复。',
+      onOk: async () => {
+        try {
+          // Since deleting multiple isn't explicitly defined, we'll map delete over completed
+          const completedIds = todos.filter(t => t.status === 2).map(t => t.id);
+          let allSuccess = true;
+          for (const id of completedIds) {
+            const result = await window.electronAPI.todos.delete(id);
+            if (!result.success) allSuccess = false;
+          }
+          if (allSuccess) {
+            Message.success('已清空');
+            await loadTodos();
+          } else {
+            Message.error('部分清空失败');
+            await loadTodos(); // reload anyway to get up-to-date state
+          }
+        } catch (error) {
+          console.error('Failed to clear completed todos:', error);
+          Message.error('清空失败');
+        }
+      }
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setManualOrder((items) => {
+        const oldIndex = items.indexOf(active.id as number);
+        const newIndex = items.indexOf(over.id as number);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
   const sortedTodos = [...filteredTodos].sort((a, b) => {
+    // If they have manual order, use it. Otherwise fallback to status/priority
+    const idxA = manualOrder.indexOf(a.id);
+    const idxB = manualOrder.indexOf(b.id);
+
+    if (idxA !== -1 && idxB !== -1) {
+      return idxA - idxB;
+    }
+
     if (a.status !== b.status) return a.status - b.status;
     return a.priority - b.priority;
   });
+
+  const getPriorityLabel = (priority: number) => {
+    return PRIORITIES.find(p => p.value === priority)?.label;
+  };
 
   const formatDate = (timestamp: number | null) => {
     if (!timestamp) return '';
@@ -142,13 +220,41 @@ function Todos() {
   };
 
   return (
-    <div className="todos-page">
-      <div className="todos-header">
-        <h1 className="page-title">待办事项</h1>
-        <Button type="primary" icon={<IconPlus />} onClick={() => setShowNewTodoModal(true)}>
-          添加任务
-        </Button>
-      </div>
+    <div className="todos-page fade-in">
+      <PageHeader
+        title="待办事项"
+        subtitle="管理你的日常任务，保持高效学习"
+        actions={[
+          {
+            label: '添加任务',
+            onClick: () => setShowNewTodoModal(true),
+            type: 'primary',
+            icon: <IconPlus />
+          }
+        ]}
+      />
+
+      <PageContextBar
+        label="Filter Status"
+        value={filter === 'all' ? '全部任务' : filter === 'pending' ? '进行中' : '已完成'}
+        metrics={[
+          {
+            label: 'Total',
+            value: stats.total,
+            type: 'default'
+          },
+          {
+            label: 'Pending',
+            value: stats.pending,
+            type: 'warning'
+          },
+          {
+            label: 'Completed',
+            value: stats.completed,
+            type: 'success'
+          }
+        ]}
+      />
 
       <Layout className="todos-layout">
         <Sider width={320} className="todos-sidebar">
@@ -163,7 +269,14 @@ function Todos() {
             </div>
             <div className="stat-item">
               <div className="stat-label">已完成</div>
-              <div className="stat-value completed">{stats.completed}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {stats.completed > 0 && (
+                  <Button type="text" size="mini" status="danger" onClick={handleClearCompleted}>
+                    清空
+                  </Button>
+                )}
+                <div className="stat-value completed">{stats.completed}</div>
+              </div>
             </div>
           </Card>
 
@@ -183,52 +296,43 @@ function Todos() {
 
         <Content className="todos-content">
           {sortedTodos.length === 0 ? (
-            <Empty description="暂无待办事项" style={{ marginTop: 80 }} />
+            <div className="todos-empty-wrapper">
+              <EmptyState
+                icon={<IconCheckCircle style={{ fontSize: 64, marginBottom: 16, color: 'var(--status-success)' }} />}
+                title="暂无待办事项"
+                description="点击下方按钮即可创建。保持专注，逐个击破！"
+              >
+                <Button type="primary" icon={<IconPlus />} onClick={() => setShowNewTodoModal(true)}>
+                  添加第一个任务
+                </Button>
+              </EmptyState>
+            </div>
           ) : (
-            <List
-              className="todos-list"
-              dataSource={sortedTodos}
-              render={(todo: Todo) => (
-                <List.Item
-                  key={todo.id}
-                  className={`todo-item ${todo.status === 2 ? 'completed' : ''} ${isOverdue(todo) ? 'overdue' : ''}`}
-                >
-                  <div className="todo-item-content">
-                    <div className="todo-item-main">
-                      <Button
-                        type="text"
-                        icon={<IconCheckCircle />}
-                        className={`todo-checkbox ${todo.status === 2 ? 'checked' : ''}`}
-                        onClick={() => handleToggleTodo(todo)}
-                      />
-                      <div className="todo-info">
-                        <div className="todo-title">{todo.title}</div>
-                        {todo.description && (
-                          <div className="todo-description">{todo.description}</div>
-                        )}
-                        <div className="todo-meta">
-                          <Tag color={getPriorityColor(todo.priority)} bordered>
-                            {PRIORITIES.find(p => p.value === todo.priority)?.label}优先级
-                          </Tag>
-                          {todo.category && <Tag>{todo.category}</Tag>}
-                          {todo.due_date && (
-                            <Tag color={isOverdue(todo) ? 'red' : 'green'}>
-                              {formatDate(todo.due_date)}
-                            </Tag>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      type="text"
-                      status="danger"
-                      icon={<IconDelete />}
-                      onClick={() => handleDeleteTodo(todo.id)}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedTodos.map(t => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="todos-list">
+                  {sortedTodos.map((todo) => (
+                    <SortableTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      isOverdue={isOverdue}
+                      getPriorityColor={getPriorityColor}
+                      getPriorityLabel={getPriorityLabel}
+                      formatDate={formatDate}
+                      onToggle={handleToggleTodo}
+                      onDelete={handleDeleteTodo}
                     />
-                  </div>
-                </List.Item>
-              )}
-            />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </Content>
       </Layout>

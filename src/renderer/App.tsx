@@ -5,6 +5,7 @@ import { IconSun, IconMoon, IconLeft, IconRight } from '@arco-design/web-react/i
 import React, { Suspense } from 'react';
 import CommandPalette from './components/CommandPalette';
 import BrandMark from './components/BrandMark';
+import PageSkeleton from './components/UI/PageSkeleton';
 import { MENU_ITEMS } from './config/navigation';
 import { normalizeFontFamily, resolveFontFamilyRoles } from './config/fontFamily';
 import { EditorChromeTheme, ResolvedTheme, ThemeMode, UiDensity } from './types/theme';
@@ -32,6 +33,7 @@ const normalizeEditorChromeTheme = (value: string | null | undefined): EditorChr
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isNotesRoute = location.pathname === '/notes';
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKey, setSelectedKey] = useState(location.pathname);
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
@@ -285,19 +287,21 @@ function App() {
         </Sider>
 
         <Layout className="content-layout">
-          <Content className="content">
-            <Suspense fallback={<div className="page-loading">加载中…</div>}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/checkin" replace />} />
-                <Route path="/skills" element={<SkillTree />} />
-                <Route path="/plans" element={<StudyPlan />} />
-                <Route path="/notes" element={<Notes />} />
-                <Route path="/todos" element={<Todos />} />
-                <Route path="/checkin" element={<CheckIn />} />
-                <Route path="/code" element={<CodeRunner />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<Navigate to="/checkin" replace />} />
-              </Routes>
+          <Content className={`content${isNotesRoute ? ' content-notes' : ''}`}>
+            <Suspense fallback={<PageSkeleton />}>
+              <div key={location.pathname} className={`page-enter${isNotesRoute ? ' page-enter-notes' : ''}`}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/checkin" replace />} />
+                  <Route path="/skills" element={<SkillTree />} />
+                  <Route path="/plans" element={<StudyPlan />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route path="/todos" element={<Todos />} />
+                  <Route path="/checkin" element={<CheckIn />} />
+                  <Route path="/code" element={<CodeRunner />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<Navigate to="/checkin" replace />} />
+                </Routes>
+              </div>
             </Suspense>
           </Content>
         </Layout>

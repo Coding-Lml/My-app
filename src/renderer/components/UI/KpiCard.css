@@ -1,0 +1,110 @@
+.kpi-card {
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface-soft);
+    border: 1px solid var(--border-color-soft);
+    transition: all var(--transition-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-raised);
+    border-color: var(--accent-primary);
+}
+
+.kpi-card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kpi-card-main {
+    flex: 1;
+}
+
+.kpi-card-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+    display: block;
+    color: var(--text-color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kpi-card-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+}
+
+.kpi-card .arco-statistic-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color-bright);
+}
+
+.kpi-card-trend {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.kpi-card-trend.success {
+    color: var(--success-soft);
+    background: color-mix(in srgb, var(--success-soft), transparent 90%);
+}
+
+.kpi-card-trend.warning {
+    color: var(--warning-soft);
+    background: color-mix(in srgb, var(--warning-soft), transparent 90%);
+}
+
+.kpi-card-trend.error {
+    color: var(--danger-soft);
+    background: color-mix(in srgb, var(--danger-soft), transparent 90%);
+}
+
+.kpi-card-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-primary), transparent 90%);
+    color: var(--accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.kpi-card.fire .kpi-card-icon-box {
+    background: var(--status-danger-soft);
+    color: var(--status-danger);
+}
+
+.kpi-card.calendar .kpi-card-icon-box {
+    background: var(--accent-primary-soft);
+    color: var(--accent-primary);
+}
+
+.kpi-card.clock .kpi-card-icon-box {
+    background: var(--accent-secondary-soft);
+    color: var(--accent-secondary);
+}
+
+.kpi-card.month .kpi-card-icon-box {
+    background: color-mix(in srgb, var(--accent-primary-soft) 82%, white 18%);
+    color: var(--accent-primary);
+}
+
+.kpi-card.month-clock .kpi-card-icon-box {
+    background: color-mix(in srgb, var(--accent-secondary-soft) 82%, white 18%);
+    color: var(--accent-secondary);
+}
+
+.kpi-card.tasks .kpi-card-icon-box {
+    background: var(--status-success-soft);
+    color: var(--status-success);
+}

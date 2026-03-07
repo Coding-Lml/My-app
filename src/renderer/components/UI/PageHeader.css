@@ -1,0 +1,61 @@
+.page-header-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.page-header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.page-header-back {
+  margin-top: 3px;
+  color: var(--text-secondary) !important;
+}
+
+.page-header-back:hover {
+  color: var(--text-primary) !important;
+  background: var(--surface-emphasis);
+}
+
+.page-header-title-box {
+  min-width: 0;
+}
+
+.page-header-title {
+  margin-bottom: 4px;
+}
+
+.page-header-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.page-header-breadcrumb {
+  margin-bottom: 2px;
+}
+
+.page-header-breadcrumb .arco-breadcrumb {
+  font-size: 12px;
+}

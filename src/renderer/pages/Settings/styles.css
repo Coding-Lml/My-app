@@ -7,10 +7,18 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: fade-in-up var(--motion-slow) both;
 }
 
 .settings-card {
   margin-bottom: 0 !important;
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast) !important;
+  will-change: transform;
+}
+
+.settings-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift) !important;
 }
 
 .settings-select-sm {

@@ -4,23 +4,14 @@ import {
   Button,
   Input,
   Modal,
-  Empty,
-  Tooltip,
   Dropdown,
   Menu,
   Message,
 } from '@arco-design/web-react';
 import {
-  IconPlus,
-  IconSearch,
-  IconSave,
   IconFolder,
   IconFile,
-  IconDownload,
-  IconMore,
-  IconMenu,
   IconArchive,
-  IconImage,
 } from '@arco-design/web-react/icon';
 import MilkdownEditor, {
   HeadingItem,
@@ -32,36 +23,25 @@ import Outline from '../../components/Outline';
 import NotesSidebar, { NoteTreeNode } from './components/NotesSidebar';
 import OpenTabsBar from './components/OpenTabsBar';
 import FindReplacePanel from './components/FindReplacePanel';
+import NotesHeader from './components/NotesHeader';
+import PageContextBar from '../../components/UI/PageContextBar';
+import EmptyState from '../../components/UI/EmptyState';
 import {
   useNotesMenus,
   type NotesImagePathMode,
   type NotesPdfPageSize,
   type NotesPdfTheme,
 } from './hooks/useNotesMenus';
+import { useFileManager, type FileItem } from './hooks/useFileManager';
 import './styles.css';
 
 const { Content } = Layout;
 
-interface FileItem {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: FileItem[];
-}
-
-interface OpenedFile {
-  path: string;
-  name: string;
-  content: string;
-  isModified: boolean;
-}
-
+const DEFAULT_FIND_STATE: SearchState = { total: 0, currentIndex: -1 };
 type ImagePathMode = NotesImagePathMode;
 type PdfPageSize = NotesPdfPageSize;
 type PdfTheme = NotesPdfTheme;
-
 const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.txt'];
-const DEFAULT_FIND_STATE: SearchState = { total: 0, currentIndex: -1 };
 const DEFAULT_PDF_CUSTOM_CSS = `.markdown-body {
   font-family: "Times New Roman", "Songti SC", serif;
   line-height: 1.7;
@@ -73,10 +53,34 @@ const DEFAULT_PDF_CUSTOM_CSS = `.markdown-body {
 }`;
 
 function Notes() {
-  const [openedFolder, setOpenedFolder] = useState<string | null>(null);
-  const [fileTree, setFileTree] = useState<FileItem[]>([]);
-  const [openedFiles, setOpenedFiles] = useState<OpenedFile[]>([]);
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const {
+    openedFolder,
+    setOpenedFolder,
+    fileTree,
+    openedFiles,
+    setOpenedFiles,
+    currentFilePath,
+    setCurrentFilePath,
+    recentFiles,
+    isSaving,
+    loadFolder,
+    saveFile,
+    closeFileTab,
+    handleCloseFile,
+    handleOpenFolder,
+    handleOpenFile,
+    handleSaveAs,
+    handleFileSelect,
+    removeFromRecentFiles,
+    getCurrentFileName,
+    getCurrentFileDir,
+  } = useFileManager({
+    onFileSelect: (path) => {
+      // Logic for when a file is selected
+      const file = openedFiles.find(f => f.path === path);
+      if (file) setEditingContent(file.content);
+    }
+  });
 
   const [editingContent, setEditingContent] = useState('');
   const [newFileName, setNewFileName] = useState('');
@@ -86,9 +90,9 @@ function Notes() {
   const [showOutline, setShowOutline] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [typewriterMode, setTypewriterMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // redundant isSaving removed
   const [showSidebar, setShowSidebar] = useState(true);
-  const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  // redundant recentFiles removed
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [renamingFile, setRenamingFile] = useState<{ path: string; name: string } | null>(null);
   const [newName, setNewName] = useState('');
@@ -114,20 +118,6 @@ function Notes() {
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<MilkdownEditorHandle | null>(null);
 
-  const loadRecentFiles = async () => {
-    try {
-      const saved = await window.electronAPI.settings.get('recentFiles');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setRecentFiles(parsed);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load recent files:', error);
-    }
-  };
-
   const loadNotesPreferences = async (): Promise<string | null> => {
     try {
       const [imageMode, pageSize, printBackground, theme, customCss, outlineLevel, autoSave, notesRootFolder] = await Promise.all([
@@ -142,16 +132,16 @@ function Notes() {
       ]);
 
       if (imageMode === 'app-relative' || imageMode === 'file-relative') {
-        setImagePathMode(imageMode);
+        setImagePathMode(imageMode as ImagePathMode);
       }
       if (pageSize === 'A4' || pageSize === 'Letter') {
-        setPdfPageSize(pageSize);
+        setPdfPageSize(pageSize as PdfPageSize);
       }
       if (printBackground === 'true' || printBackground === 'false') {
         setPdfPrintBackground(printBackground === 'true');
       }
       if (theme === 'typora' || theme === 'github' || theme === 'custom') {
-        setPdfTheme(theme);
+        setPdfTheme(theme as PdfTheme);
       }
       if (typeof customCss === 'string' && customCss.trim()) {
         setPdfCustomCss(customCss);
@@ -177,14 +167,6 @@ function Notes() {
     return null;
   };
 
-  const saveRecentFiles = useCallback(async (files: string[]) => {
-    try {
-      await window.electronAPI.settings.set('recentFiles', JSON.stringify(files), 'notes');
-    } catch (error) {
-      console.error('Failed to save recent files:', error);
-    }
-  }, []);
-
   const saveNotesPreference = async (key: string, value: string) => {
     try {
       await window.electronAPI.settings.set(key, value, 'notes');
@@ -197,71 +179,8 @@ function Notes() {
     await saveNotesPreference('notesImagePathMode', mode);
   };
 
-  const addToRecentFiles = useCallback((filePath: string) => {
-    setRecentFiles((prev) => {
-      const filtered = prev.filter((p) => p !== filePath);
-      const updated = [filePath, ...filtered].slice(0, 20);
-      void saveRecentFiles(updated);
-      return updated;
-    });
-  }, [saveRecentFiles]);
-
-  const removeFromRecentFiles = useCallback((filePath: string) => {
-    setRecentFiles((prev) => {
-      const updated = prev.filter((item) => item !== filePath);
-      void saveRecentFiles(updated);
-      return updated;
-    });
-  }, [saveRecentFiles]);
-
-  const buildFolderTree = useCallback(async (folderPath: string, depth = 0): Promise<FileItem[]> => {
-    if (depth > 12) {
-      return [];
-    }
-
-    const result = await window.electronAPI.fs.readFolder(folderPath);
-    if (!result.success) {
-      return [];
-    }
-
-    const folders = [...(result.folders || [])].sort((a, b) => a.name.localeCompare(b.name));
-
-    const files = [...(result.files || [])].sort((a, b) => a.name.localeCompare(b.name));
-
-    const folderItems = await Promise.all(
-      folders.map(async (folder) => ({
-        name: folder.name,
-        path: folder.path,
-        isDirectory: true,
-        children: await buildFolderTree(folder.path, depth + 1),
-      }))
-    );
-
-    const fileItems = files.map((file) => ({
-      name: file.name,
-      path: file.path,
-      isDirectory: false,
-    }));
-
-    return [...folderItems, ...fileItems];
-  }, []);
-
-  const loadFolder = useCallback(
-    async (folderPath: string) => {
-      try {
-        const treeData = await buildFolderTree(folderPath);
-        setFileTree(treeData);
-      } catch (error) {
-        console.error('Failed to load folder:', error);
-        Message.error('加载文件夹失败');
-      }
-    },
-    [buildFolderTree]
-  );
-
   useEffect(() => {
     const initialize = async () => {
-      await loadRecentFiles();
       const savedRootFolder = await loadNotesPreferences();
       if (savedRootFolder) {
         setOpenedFolder(savedRootFolder);
@@ -285,24 +204,6 @@ function Notes() {
     }
   }, [autoSaveEnabled]);
 
-  useEffect(() => {
-    if (!openedFolder) {
-      return;
-    }
-
-    const handleFolderChange = () => {
-      void loadFolder(openedFolder);
-    };
-
-    window.electronAPI.fs.onFolderChange(handleFolderChange);
-    void window.electronAPI.fs.watchFolder(openedFolder);
-
-    return () => {
-      window.electronAPI.fs.removeFolderChangeListener();
-      void window.electronAPI.fs.unwatchFolder(openedFolder);
-    };
-  }, [openedFolder, loadFolder]);
-
   const getFindOptions = useCallback((): SearchOptions => {
     return {
       query: findText,
@@ -322,9 +223,10 @@ function Notes() {
     setFindState(state);
   }, [getFindOptions, showFindBar]);
 
-  const openFindPanel = useCallback((withReplace = false) => {
+  const openFindPanel = useCallback((withReplace?: boolean) => {
+    const shouldReplace = withReplace === true;
     setShowFindBar(true);
-    if (withReplace) {
+    if (shouldReplace) {
       setShowReplaceBar(true);
     }
     setTimeout(() => {
@@ -372,111 +274,6 @@ function Notes() {
     refreshFindState();
   }, [editingContent, showFindBar, currentFilePath, findText, findCaseSensitive, findWholeWord, findRegex, refreshFindState]);
 
-  const handleOpenFolder = async () => {
-    try {
-      const result = await window.electronAPI.fs.openFolder();
-      if (result.success && result.folderPath) {
-        setOpenedFolder(result.folderPath);
-        await window.electronAPI.settings.set('notesRootFolder', result.folderPath, 'notes');
-        await loadFolder(result.folderPath);
-      }
-    } catch (error) {
-      console.error('Failed to open folder:', error);
-      Message.error('打开文件夹失败');
-    }
-  };
-
-  const loadSingleFile = useCallback(async (filePath: string) => {
-    try {
-      const result = await window.electronAPI.fs.readFile(filePath);
-      if (result.success) {
-        const fileContent = result.content ?? '';
-        const dir = filePath.substring(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')));
-        setOpenedFolder(dir);
-        await window.electronAPI.settings.set('notesRootFolder', dir, 'notes');
-
-        const newFile: OpenedFile = {
-          path: filePath,
-          name: filePath.split(/[\\/]/).pop() || filePath,
-          content: fileContent,
-          isModified: false,
-        };
-
-        setOpenedFiles((prev) => {
-          const existing = prev.find((f) => f.path === filePath);
-          if (existing) {
-            return prev.map((f) => (f.path === filePath ? { ...f, content: fileContent, isModified: false } : f));
-          }
-          return [...prev, newFile];
-        });
-        setCurrentFilePath(filePath);
-        setEditingContent(fileContent);
-        await loadFolder(dir);
-      }
-    } catch (error) {
-      console.error('Failed to read file:', error);
-      Message.error('读取文件失败');
-    }
-  }, [loadFolder]);
-
-  const handleOpenFile = useCallback(async () => {
-    try {
-      const result = await window.electronAPI.fs.openFile();
-      if (result.success && result.filePath) {
-        await loadSingleFile(result.filePath);
-        addToRecentFiles(result.filePath);
-      }
-    } catch (error) {
-      console.error('Failed to open file:', error);
-      Message.error('打开文件失败');
-    }
-  }, [addToRecentFiles, loadSingleFile]);
-
-  const handleSaveAs = useCallback(async () => {
-    try {
-      const defaultName = currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'untitled.md';
-      const result = await window.electronAPI.fs.saveFileDialog(editingContent, defaultName);
-      if (result.success && result.filePath) {
-        await loadSingleFile(result.filePath);
-        addToRecentFiles(result.filePath);
-        Message.success('文件已保存');
-      }
-    } catch (error) {
-      console.error('Failed to save file:', error);
-      Message.error('保存文件失败');
-    }
-  }, [addToRecentFiles, currentFilePath, editingContent, loadSingleFile]);
-
-  const handleFileSelect = async (filePath: string) => {
-    const existingFile = openedFiles.find((f) => f.path === filePath);
-    if (existingFile) {
-      setCurrentFilePath(filePath);
-      setEditingContent(existingFile.content);
-      return;
-    }
-
-    await loadSingleFile(filePath);
-    addToRecentFiles(filePath);
-  };
-
-  const saveFile = useCallback(async (filePath: string, content: string, silent = false) => {
-    setIsSaving(true);
-    try {
-      const result = await window.electronAPI.fs.writeFile(filePath, content);
-      if (result.success) {
-        setOpenedFiles((prev) => prev.map((f) => (f.path === filePath ? { ...f, isModified: false } : f)));
-        if (!silent) {
-          Message.success('已保存');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save file:', error);
-      Message.error('保存文件失败');
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
   const handleContentChange = useCallback(
     (content: string) => {
       setEditingContent(content);
@@ -499,8 +296,11 @@ function Notes() {
         }
       }, 1500);
     },
-    [autoSaveEnabled, currentFilePath, saveFile]
+    [autoSaveEnabled, currentFilePath, saveFile, setOpenedFiles]
   );
+
+  // handleCreateFile, handleDeleteFile, closeFileTab, handleCloseFile, getCurrentFileName stay here or removed if moved to useFileManager
+  // Wait, closeFileTab and handleCloseFile are in useFileManager too. Let's remove them here.
 
   const handleManualSave = useCallback(() => {
     if (autoSaveTimerRef.current) {
@@ -509,7 +309,7 @@ function Notes() {
     if (currentFilePath) {
       void saveFile(currentFilePath, editingContent);
     } else {
-      void handleSaveAs();
+      void handleSaveAs(editingContent);
     }
   }, [currentFilePath, editingContent, handleSaveAs, saveFile]);
 
@@ -569,48 +369,6 @@ function Notes() {
         }
       },
     });
-  };
-
-  const closeFileTab = useCallback((filePath: string) => {
-    setOpenedFiles((prev) => {
-      const closingIndex = prev.findIndex((file) => file.path === filePath);
-      const remaining = prev.filter((file) => file.path !== filePath);
-
-      if (currentFilePath === filePath) {
-        const targetIndex = Math.max(0, closingIndex - 1);
-        const nextFile = remaining[targetIndex] || remaining[0] || null;
-        setCurrentFilePath(nextFile?.path || null);
-        setEditingContent(nextFile?.content || '');
-      }
-
-      return remaining;
-    });
-  }, [currentFilePath]);
-
-  const handleCloseFile = useCallback((filePath: string) => {
-    const file = openedFiles.find((f) => f.path === filePath);
-    if (file?.isModified) {
-      Modal.confirm({
-        title: '文件未保存',
-        content: '文件有未保存的更改，是否保存？',
-        okText: '保存',
-        cancelText: '不保存',
-        onOk: async () => {
-          await saveFile(filePath, file.content);
-          closeFileTab(filePath);
-        },
-        onCancel: () => {
-          closeFileTab(filePath);
-        },
-      });
-    } else {
-      closeFileTab(filePath);
-    }
-  }, [closeFileTab, openedFiles, saveFile]);
-
-  const getCurrentFileName = () => {
-    if (!currentFilePath) return '未打开文件';
-    return currentFilePath.split(/[\\/]/).pop();
   };
 
   const handleImagePathModeChange = (mode: ImagePathMode) => {
@@ -880,7 +638,7 @@ function Notes() {
   const exportMenu = useMemo(
     () => (
       <Menu>
-        <Menu.Item key="saveAs" onClick={() => void handleSaveAs()}>
+        <Menu.Item key="saveAs" onClick={() => void handleSaveAs(editingContent)}>
           另存为 (Shift+Cmd+S)
         </Menu.Item>
         <Menu.Item key="exportPdf" onClick={() => void handleExportPDF()} disabled={!editingContent}>
@@ -900,8 +658,7 @@ function Notes() {
       const isSupported = MARKDOWN_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
       const droppedPath = (file as File & { path?: string }).path;
       if (isSupported && droppedPath) {
-        await loadSingleFile(droppedPath);
-        addToRecentFiles(droppedPath);
+        await handleFileSelect(droppedPath);
       }
     }
   };
@@ -968,16 +725,6 @@ function Notes() {
     }));
   };
 
-  const getCurrentFileDir = () => {
-    if (currentFilePath) {
-      const lastSlash = Math.max(currentFilePath.lastIndexOf('/'), currentFilePath.lastIndexOf('\\'));
-      if (lastSlash !== -1) {
-        return currentFilePath.substring(0, lastSlash);
-      }
-    }
-    return undefined;
-  };
-
   const getImageSavePath = () => {
     if (imagePathMode === 'app-relative') {
       return undefined;
@@ -1013,79 +760,47 @@ function Notes() {
   const sidebarTree = renderFileTree(fileTree);
   const activeContextPath = currentFilePath || openedFolder || '尚未打开目录';
   const editingModeLabel = focusMode ? '专注模式' : typewriterMode ? '打字机模式' : '标准模式';
-  const saveStateLabel = isSaving ? '保存中' : autoSaveEnabled ? '自动保存开启' : '自动保存关闭';
 
   return (
     <div className={`notes-page ${focusMode ? 'focus-mode' : ''}`} onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop}>
-      <div className="notes-header typora-header">
-        <div className="header-left">
-          <IconFile style={{ marginRight: 8, opacity: 0.6 }} />
-          <span className="current-file-name">{getCurrentFileName()}</span>
-          {currentFilePath && (
-            <span className="file-path" title={currentFilePath}>
-              {currentFilePath}
-            </span>
-          )}
-        </div>
+      <NotesHeader
+        currentFileName={getCurrentFileName()}
+        currentFilePath={currentFilePath}
+        isSaving={isSaving}
+        showSidebar={showSidebar}
+        setShowSidebar={setShowSidebar}
+        onOpenFile={handleOpenFile}
+        onOpenFolder={handleOpenFolder}
+        onNewFile={() => setShowNewFileModal(true)}
+        onManualSave={handleManualSave}
+        onOpenFindPanel={() => openFindPanel(false)}
+        onInsertImage={handleInsertImage}
+        exportMenu={exportMenu}
+        settingsMenu={settingsMenu}
+      />
 
-        <div className="header-right">
-          <div className="notes-action-group">
-            <Tooltip content="打开文件 (Cmd+O)">
-              <Button icon={<IconArchive />} onClick={handleOpenFile}>
-                <span className="header-action-label">打开</span>
-              </Button>
-            </Tooltip>
-            <Tooltip content="打开文件夹">
-              <Button icon={<IconFolder />} onClick={handleOpenFolder}>
-                <span className="header-action-label">文件夹</span>
-              </Button>
-            </Tooltip>
-            <Tooltip content="新建文件 (Cmd+N)">
-              <Button icon={<IconPlus />} onClick={() => setShowNewFileModal(true)}>
-                <span className="header-action-label">新建</span>
-              </Button>
-            </Tooltip>
-            <Tooltip content="保存 (Cmd+S)">
-              <Button icon={<IconSave />} onClick={handleManualSave} loading={isSaving}>
-                <span className="header-action-label">保存</span>
-              </Button>
-            </Tooltip>
-          </div>
-
-          <div className="notes-action-group">
-            <Tooltip content="查找 (Cmd+F)">
-              <Button icon={<IconSearch />} onClick={() => openFindPanel(false)} />
-            </Tooltip>
-            <Tooltip content="插入图片 (Shift+Cmd+I)">
-              <Button icon={<IconImage />} onClick={handleInsertImage} disabled={!currentFilePath} />
-            </Tooltip>
-            <Dropdown droplist={exportMenu} position="bottom">
-              <Button icon={<IconDownload />}>导出</Button>
-            </Dropdown>
-          </div>
-
-          <div className="notes-action-group notes-action-group-utility">
-            <Tooltip content="侧边栏 (Cmd+B)">
-              <Button icon={<IconMenu />} onClick={() => setShowSidebar(!showSidebar)} />
-            </Tooltip>
-            <Dropdown droplist={settingsMenu} position="bottom">
-              <Button icon={<IconMore />} />
-            </Dropdown>
-          </div>
-        </div>
-      </div>
-
-      <div className="page-context-bar notes-context-bar">
-        <div className="page-context-main">
-          <span className="page-context-label">Document Context</span>
-          <span className="page-context-value" title={activeContextPath}>{activeContextPath}</span>
-        </div>
-        <div className="page-context-metrics">
-          <span className={`page-context-pill ${isSaving ? 'warning' : 'success'}`}>{saveStateLabel}</span>
-          <span className="page-context-pill accent">{editingModeLabel}</span>
-          <span className="page-context-pill">{showOutline ? '大纲开启' : '大纲关闭'}</span>
-        </div>
-      </div>
+      <PageContextBar
+        label="Document Context"
+        value={activeContextPath}
+        metrics={[
+          {
+            label: 'Status',
+            value: isSaving ? '保存中' : autoSaveEnabled ? '自动保存开启' : '自动保存关闭',
+            type: isSaving ? 'warning' : 'success'
+          },
+          {
+            label: 'Mode',
+            value: editingModeLabel,
+            type: 'accent'
+          },
+          {
+            label: 'Outline',
+            value: showOutline ? '开启' : '关闭',
+            type: 'default'
+          }
+        ]}
+        className="notes-context-bar"
+      />
 
       <Layout className={`notes-layout ${showSidebar ? '' : 'sidebar-hidden'}`}>
         <NotesSidebar
@@ -1160,23 +875,18 @@ function Notes() {
             </>
           ) : (
             <div className="notes-empty-wrapper">
-              <Empty
-                description={
-                  <div className="empty-state">
-                    <IconFile style={{ fontSize: 64, marginBottom: 16 }} />
-                    <p>打开 Markdown 文件开始编辑</p>
-                    <div className="empty-actions">
-                      <Button type="primary" icon={<IconArchive />} onClick={handleOpenFile}>
-                        打开文件
-                      </Button>
-                      <Button icon={<IconFolder />} onClick={handleOpenFolder}>
-                        打开文件夹
-                      </Button>
-                    </div>
-                  </div>
-                }
-                style={{ marginTop: 0 }}
-              />
+              <EmptyState
+                icon={<IconFile style={{ fontSize: 64, marginBottom: 16 }} />}
+                title="未打开文件"
+                description="打开一个 Markdown 文件开始编辑，或点击下方按钮打开文件夹。"
+              >
+                <Button type="primary" icon={<IconArchive />} onClick={handleOpenFile}>
+                  打开文件
+                </Button>
+                <Button icon={<IconFolder />} onClick={handleOpenFolder}>
+                  打开文件夹
+                </Button>
+              </EmptyState>
             </div>
           )}
         </Content>
